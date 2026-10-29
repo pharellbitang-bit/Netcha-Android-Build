@@ -6,7 +6,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-apk:
@@ -38,10 +38,24 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
-      - name: Upload installable test APK
+      - name: Upload installable test APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: netcha-android-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30
+
+      - name: Publish public test download
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-test
+          name: Netcha Android — version de test
+          body: |
+            Version de test de Netcha pour Android.
+
+            Attention : cette version est une APK de débogage destinée aux testeurs. Elle n'est pas une version certifiée ni publiée sur Google Play. Installez-la uniquement si vous acceptez de tester une version en développement.
+          prerelease: true
+          make_latest: false
+          files: android/app/build/outputs/apk/debug/app-debug.apk
+          overwrite_files: true
