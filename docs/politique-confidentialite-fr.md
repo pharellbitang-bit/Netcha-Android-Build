@@ -8,8 +8,8 @@
 
 Netcha est un service en cours de développement et de tests. Le responsable du traitement et son adresse de contact doivent être indiqués ici avant publication :
 
-- Responsable : **à compléter**
-- Adresse e-mail de contact : **à compléter**
+- Responsable : **Pharell Bitang**
+- Adresse e-mail de contact : **Pharellbitang@gmail.com**
 
 ## 2. Données susceptibles d'être traitées
 
