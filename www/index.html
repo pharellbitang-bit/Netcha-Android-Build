@@ -1663,7 +1663,7 @@ window.addEventListener('netcha:auth',()=>{chargerFil();chargerStoriesUI();charg
 document.querySelector('[data-screen="explore"]')?.addEventListener('click',()=>actualiserRaccourciVendeurExplorerNetcha());
 chargerStoriesUI();chargerConversationsUI();chargerCatalogue();
 const champMessageNetcha=document.getElementById('messageText');if(champMessageNetcha)champMessageNetcha.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();envoyerMessageUI()}});setInterval(()=>{if(document.visibilityState==='visible'&&document.getElementById('messages')?.classList.contains('active')&&activeConversationId){window.netchaSilentRefresh=true;chargerMessagesUI().finally(()=>{window.netchaSilentRefresh=false});chargerConversationsUI()}},5000);
-</script><script src="auth.js"></script>
+</script><script src="https://localhost/auth.js"></script>
 <div id="editeurProfil" style="display:none;position:fixed;inset:0;z-index:40;background:#10111b;padding:24px 18px;overflow:auto">
   <h2>Modifier mon profil</h2>
   <p class="muted">Personnalise ton espace Netcha.</p>
