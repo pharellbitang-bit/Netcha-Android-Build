@@ -27,8 +27,8 @@ Social
 À confirmer avant soumission, en fonction des utilisateurs réellement visés et des règles Google Play relatives aux enfants.
 
 ## Coordonnées du développeur à compléter
-- Nom du responsable ou de l'entité : À renseigner
-- Adresse e-mail d'assistance : À renseigner
+- Nom du responsable ou de l'entité : Pharell Bitang
+- Adresse e-mail d'assistance : Pharellbitang@gmail.com
 - Site Web : https://gentle-tranquility-production-db0a.up.railway.app/
 - Politique de confidentialité publique : URL à publier et à vérifier
 
@@ -40,7 +40,7 @@ Social
 
 ## À vérifier avant soumission
 - Confirmer chaque fonctionnalité présente dans la version proposée.
-- Ajouter une adresse e-mail de contact réellement consultée.
+- Confirmer que Pharellbitang@gmail.com est une adresse de contact réellement consultée.
 - Publier la politique de confidentialité et vérifier qu'elle s'ouvre sans connexion.
 - Remplir la section Sécurité des données à partir d'un audit réel.
 - Ajouter les instructions de suppression de compte et vérifier que la suppression fonctionne.
