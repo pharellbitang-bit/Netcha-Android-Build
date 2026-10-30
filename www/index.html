@@ -1396,7 +1396,7 @@ async function publierProduit(){
   const urls=[];
   for(let i=0;i<images.length;i++){
    if(status)status.textContent='Envoi de la photo '+(i+1)+' sur '+images.length+'…';
-   const upload=await fetch('/api/media/upload',{method:'PUT',headers:{Authorization:'Bearer '+token,'Content-Type':images[i].type},body:images[i]});
+   const fichierNetcha=await netchaOptimiserImageLite(images[i]);const upload=await fetch('/api/media/upload',{method:'PUT',headers:{Authorization:'Bearer '+token,'Content-Type':fichierNetcha.type||images[i].type},body:fichierNetcha});
    const media=await upload.json();if(!upload.ok||!media.media_url)throw new Error(media.erreur||('Impossible d’envoyer la photo '+(i+1)+'. Réessaie.'));
    urls.push(media.media_url);
   }
@@ -1821,10 +1821,10 @@ m.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{netchaStoryLens=b.
    const blob=netchaStoryKind==='image'?await exporterPhotoStoryNetcha():await exporterVideoStoryNetcha();
    if(!blob||!blob.size)throw new Error('Le fichier est vide. Réessaie la capture ou choisis un autre média.');
    if(blob.size>25*1024*1024)throw new Error('Maximum 25 Mo. Choisis un fichier plus léger ou une vidéo plus courte.');
-   const mime=String(blob.type||'');
+   const blobNetcha=await netchaOptimiserImageLite(blob);const mime=String(blobNetcha.type||blob.type||'');
    const type=netchaStoryKind==='image'?(mime==='image/png'?'image/png':mime==='image/webp'?'image/webp':'image/jpeg'):(mime.includes('mp4')?'video/mp4':mime.includes('quicktime')?'video/quicktime':'video/webm');
    q('[data-status]').textContent='Envoi du média…';
-   const response=await fetch('/api/media/upload',{method:'PUT',headers:{Authorization:'Bearer '+jetonNetcha(),'Content-Type':type},body:blob});
+   const response=await fetch('/api/media/upload',{method:'PUT',headers:{Authorization:'Bearer '+jetonNetcha(),'Content-Type':type},body:blobNetcha});
    let uploaded={};try{uploaded=await response.json()}catch(_){}
    if(!response.ok)throw new Error(uploaded.erreur||'Téléversement échoué. Vérifie ta connexion puis réessaie.');
    if(!mediaUrlNetcha(uploaded.media_url))throw new Error('Le serveur n’a pas confirmé le média. Réessaie.');
@@ -2256,7 +2256,7 @@ async function televerserImageProfilNetcha(f){
   if(!f)return null;
   if(!/^image\/(jpeg|png|webp|gif)$/.test(f.type))throw new Error("Format image non accepté.");
   if(f.size<1||f.size>25*1024*1024)throw new Error("Chaque image doit peser au maximum 25 Mo.");
-  const r=await fetch("/api/media/upload",{method:"PUT",headers:{Authorization:"Bearer "+jetonNetcha(),"Content-Type":f.type},body:f});
+  const fichierNetcha=await netchaOptimiserImageLite(f);const r=await fetch("/api/media/upload",{method:"PUT",headers:{Authorization:"Bearer "+jetonNetcha(),"Content-Type":fichierNetcha.type||f.type},body:fichierNetcha});
   const d=await r.json();
   if(!r.ok)throw new Error(d.erreur||"Envoi de l'image impossible. Réessaie.");
   return d.media_url;
@@ -2820,6 +2820,22 @@ async function netchaCommenterFlash(id){const v=await dialogueNetcha({title:'Com
 async function netchaCreerEvenement(){const v=await dialogueNetcha({title:'Créer un événement',fields:[{name:'titre',label:'Titre',required:true,maxLength:120},{name:'description',label:'Description',type:'textarea',maxLength:4000},{name:'lieu',label:'Lieu',maxLength:240},{name:'debut_le',label:'Date et heure',type:'datetime-local',required:true},{name:'visibilite',label:'Visibilité',type:'select',value:'public',options:[{value:'public',label:'Public'},{value:'amis',label:'Amis'},{value:'prive',label:'Privé'}]}]});if(!v)return;try{const date=new Date(v.debut_le);if(!Number.isFinite(date.getTime())||date.getTime()<=Date.now())throw new Error('Choisis une date future valide.');v.debut_le=date.toISOString();await requeteNetcha('/api/evenements',{method:'POST',body:JSON.stringify(v)});toast('Événement créé.');netchaModules()}catch(e){toast(e.message)}}
 async function netchaRsvp(id){const v=await dialogueNetcha({title:'Répondre à l’événement',fields:[{name:'reponse',label:'Réponse',type:'select',value:'participe',options:[{value:'participe',label:'Je participe'},{value:'interesse',label:'Intéressé(e)'},{value:'refuse',label:'Je refuse'}]}]});if(!v)return;try{await requeteNetcha('/api/evenements/'+id+'/reponse',{method:'POST',body:JSON.stringify(v)});toast('Réponse enregistrée.');netchaModules()}catch(e){toast(e.message)}}
 let netchaLiteActif=false,netchaLiteCharge=false,netchaLiteChargement=null,netchaLectureAuto=false,netchaQualiteMedia='auto';
+
+async function netchaOptimiserImageLite(fichier){
+ if(!fichier||!String(fichier.type||'').startsWith('image/')||fichier.type==='image/gif')return fichier;
+ const eco=document.documentElement.dataset.netchaLite==='eco'||document.documentElement.dataset.netchaQualite==='economique';
+ if(!eco)return fichier;
+ try{
+  const bitmap=await createImageBitmap(fichier),limite=1600,echelle=Math.min(1,limite/Math.max(bitmap.width,bitmap.height));
+  if(echelle===1&&fichier.size<450000){bitmap.close?.();return fichier}
+  const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(bitmap.width*echelle));canvas.height=Math.max(1,Math.round(bitmap.height*echelle));
+  const ctx=canvas.getContext('2d');if(!ctx){bitmap.close?.();return fichier}
+  ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close?.();
+  const compresse=await new Promise(resolve=>canvas.toBlob(resolve,'image/webp',0.76));
+  return compresse&&compresse.size<fichier.size?compresse:fichier;
+ }catch(_){return fichier}
+}
+
 function netchaAppliquerLite(){
  const appliquer=()=>{
   document.querySelectorAll('img').forEach(i=>{i.loading='lazy';i.decoding='async'});
