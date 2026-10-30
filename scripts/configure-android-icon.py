@@ -11,7 +11,7 @@ foreground = """<vector xmlns:android="http://schemas.android.com/apk/res/androi
     android:viewportWidth="108" android:viewportHeight="108">
     <path android:fillColor="#FFFFFFFF"
         android:pathData="M28,78 L28,30 L39,30 L69,64 L69,30 L80,30 L80,78 L69,78 L39,44 L39,78 Z"/>
-    <circle android:fillColor="#FF62E6D4" android:cx="82" android:cy="27" android:radius="4"/>
+    <path android:fillColor="#FF62E6D4" android:pathData="M82,23 L86,27 L82,31 L78,27 Z"/>
 </vector>
 """
 (res / "drawable/netcha_launcher_foreground.xml").write_text(foreground, encoding="utf-8")
