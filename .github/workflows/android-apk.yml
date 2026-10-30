@@ -43,6 +43,8 @@ jobs:
               "android.permission.CAMERA",
               "android.permission.RECORD_AUDIO",
               "android.permission.MODIFY_AUDIO_SETTINGS",
+              "android.permission.POST_NOTIFICATIONS",
+              "android.permission.VIBRATE",
           ]
           missing = [
               f'    <uses-permission android:name="{permission}" />'
