@@ -275,7 +275,7 @@
   const identityBirth=document.getElementById('netchaIdentityBirth');if(identityBirth)installerRaccourciAnneeNaissance(identityBirth,document.getElementById('netchaIdentityBirthYear'));
   envoyer(signupForm,'register','inscription');
   envoyer(loginForm,'login','connexion');
-  if(sessionStorage.getItem('netcha_token'))afficherProfilNetcha().then(verifierCompletionCompteNetcha).catch(()=>sessionStorage.removeItem('netcha_token'));
+  if(sessionStorage.getItem('netcha_token'))afficherProfilNetcha().then(verifierCompletionCompteNetcha).catch(()=>{sessionStorage.removeItem('netcha_token');window.dispatchEvent(new Event('netcha:auth'))});
   if(new URLSearchParams(window.location.search).has('reset'))openAuth('reset');
 })();
 /* Netcha : écran d'accès obligatoire avant la découverte de l'application. */
