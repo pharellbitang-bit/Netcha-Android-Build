@@ -796,6 +796,25 @@ function carteActualiteNetcha(a){
  return '<article class="news-card">'+image+'<div class="news-card-body"><div class="news-card-meta"><span class="news-card-source">'+source+'</span><time>'+date+'</time></div><h3 class="news-card-title">'+titreHTML+'</h3>'+(resume?'<p class="news-card-summary">'+resume+'</p>':'')+'<div class="news-card-footer"><span class="news-category">'+categorie+'</span>'+lien+'</div></div></article>';
 }
 let rubriqueActualitesNetcha='Toutes';
+function normaliserRubriqueActualiteNetcha(valeur){
+ return String(valeur||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('fr').replace(/[^a-z0-9]+/g,' ').trim();
+}
+function correspondCategorieActualiteNetcha(articleCategorie,filtre){
+ const cat=normaliserRubriqueActualiteNetcha(articleCategorie),f=normaliserRubriqueActualiteNetcha(filtre);
+ if(!f||f==='toutes')return true;
+ if(!cat)return false;
+ const groupes={
+  stars:['star','stars','celebrite','celebrites','people','personnalite','personnalites','vedette','vedettes'],
+  musique:['musique','music','chanson','chansons','artiste musical','concert','album'],
+  sport:['sport','sports','football','basketball','nba','tennis','athletisme','athletisme','rugby','can'],
+  business:['business','economie','entreprise','entreprises','finance','marche','marches','entrepreneur'],
+  tech:['tech','technologie','technologies','numerique','ia','intelligence artificielle','innovation','internet'],
+  cinema:['cinema','film','films','serie','series','acteur','actrice'],
+  afrique:['afrique','africain','africaine','africains','africaines','cameroun','camerounais','camerounaise']
+ };
+ const termes=groupes[f]||[f];
+ return termes.some(t=>cat===t||cat.includes(t)||t.includes(cat));
+}
 function filtrerActualitesNetcha(categorie,bouton){
  rubriqueActualitesNetcha=categorie||'Toutes';
  document.querySelectorAll('.news-topic-netcha').forEach(b=>b.classList.toggle('active',b===bouton));
@@ -803,13 +822,13 @@ function filtrerActualitesNetcha(categorie,bouton){
  let visibles=0;
  zone.querySelectorAll('.news-card').forEach(c=>{
   const cat=c.querySelector('.news-category')?.textContent?.trim()||'';
-  const ok=rubriqueActualitesNetcha==='Toutes'||cat.toLocaleLowerCase('fr')===rubriqueActualitesNetcha.toLocaleLowerCase('fr');
+  const ok=correspondCategorieActualiteNetcha(cat,rubriqueActualitesNetcha);
   c.hidden=!ok;if(ok)visibles++;
  });
  let note=document.getElementById('newsFilterEmptyNetcha');
  if(!visibles&&zone.querySelectorAll('.news-card').length){
   if(!note){note=document.createElement('div');note.id='newsFilterEmptyNetcha';note.className='news-status';zone.appendChild(note)}
-  note.textContent='Pas encore d’article de cette rubrique dans les articles chargés. Choisis « Pour toi » ou actualise le fil.';note.hidden=false;
+  note.textContent='Aucun article de cette rubrique parmi les articles déjà chargés. Fais défiler pour charger la suite ou actualise le fil.';note.hidden=false;
  }else if(note)note.hidden=true;
 }
 async function chargerFil(reinitialiser=false,actualiser=false){
