@@ -18,6 +18,10 @@ Lorsque Netcha est ouvert et connecté, l'application vérifie régulièrement l
 
 Aucun Firebase n'est utilisé.
 
+## Interactions Android
+
+L'interface embarquée utilise des transitions entre écrans, des retours tactiles visuels, des animations sur les stories, les actions sociales et les conversations, ainsi qu'une prise en charge de la préférence Android de réduction des animations. Aucun navigateur externe ni barre d'adresse n'est intégré à l'application.
+
 ## Compilation
 
 Le workflow **Build Netcha Android APK** compile une APK de test. Elle n'est pas signée pour publication Play Store.
