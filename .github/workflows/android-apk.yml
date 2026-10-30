@@ -55,14 +55,14 @@ jobs:
               marker = "<application"
               if marker not in content:
                   raise SystemExit("Balise <application> introuvable")
-              content = content.replace(marker, "\\n".join(missing) + "\\n    " + marker, 1)
+              content = content.replace(marker, "\n".join(missing) + "\\n    " + marker, 1)
 
           manifest.write_text(content, encoding="utf-8")
           check = manifest.read_text(encoding="utf-8")
           absent = [p for p in permissions if f'name="{p}"' not in check]
           if absent:
               raise SystemExit("Permissions absentes : " + ", ".join(absent))
-          print("OK : permissions caméra et microphone vérifiées dans le manifeste.")
+          print("OK : permissions caméra, microphone et notifications vérifiées dans le manifeste.")
           PY
 
       - name: Build debug APK
