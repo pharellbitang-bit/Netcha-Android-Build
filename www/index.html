@@ -844,11 +844,17 @@ function mediaUrlNetcha(url){
  const base=String(window.NETCHA_API_BASE||'').replace(/\/+$/,'');
  return base?base+valeur:valeur;
 }
+function imageSecoursActualiteNetcha(categorie){
+ const images={stars:'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=1200&auto=format&fit=crop&q=85',musique:'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=1200&auto=format&fit=crop&q=85',business:'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=1200&auto=format&fit=crop&q=85',tech:'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&auto=format&fit=crop&q=85','cinéma':'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1200&auto=format&fit=crop&q=85',sport:'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=1200&auto=format&fit=crop&q=85',afrique:'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=1200&auto=format&fit=crop&q=85',cameroun:'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=1200&auto=format&fit=crop&q=85'};
+ const cle=String(categorie||'').trim().toLocaleLowerCase('fr');
+ return images[cle]||'https://images.unsplash.com/photo-1490730141103-6cac27aaab94?w=1200&auto=format&fit=crop&q=85';
+}
 let actualitesOffsetNetcha=0,actualitesTotalNetcha=0,actualitesChargementNetcha=false,actualitesHasMoreNetcha=false,actualitesGenerationNetcha=0;
 function carteActualiteNetcha(a){
  const titre=echapperNetcha(a.titre||'Article d’actualité'),source=echapperNetcha(a.source||'Source d’information'),categorie=echapperNetcha(a.categorie||'Actualités'),resume=echapperNetcha(a.resume||''),date=a.date_publication?echapperNetcha(dateNetcha(a.date_publication)):'';
  const url=typeof a.url==='string'&&/^https:\/\//i.test(a.url)?a.url:'';
- const image=mediaUrlNetcha(a.image_url)?'<img class="news-card-image" loading="eager" decoding="sync" fetchpriority="high" src="'+echapperNetcha(mediaUrlNetcha(a.image_url))+'" alt="" onerror="this.remove()">':'';
+ const secours=imageSecoursActualiteNetcha(a.categorie),imageSource=mediaUrlNetcha(a.image_url)||secours;
+ const image='<img class="news-card-image" loading="eager" decoding="async" fetchpriority="high" src="'+echapperNetcha(imageSource)+'" alt="Photo : '+categorie+'" onerror="this.onerror=null;this.src=\''+echapperNetcha(secours)+'\'">';
  const titreHTML=url?'<a href="'+echapperNetcha(url)+'" target="_blank" rel="noopener noreferrer">'+titre+'</a>':titre;
  const lien=url?'<a class="news-read-link" href="'+echapperNetcha(url)+'" target="_blank" rel="noopener noreferrer">Lire à la source ↗</a>':'';
  return '<article class="news-card">'+image+'<div class="news-card-body"><div class="news-card-meta"><span class="news-card-source">'+source+'</span><time>'+date+'</time></div><h3 class="news-card-title">'+titreHTML+'</h3>'+(resume?'<p class="news-card-summary">'+resume+'</p>':'')+'<div class="news-card-footer"><span class="news-category">'+categorie+'</span>'+lien+'</div></div></article>';
