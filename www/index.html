@@ -1612,7 +1612,7 @@ async function ouvrirGroupeDepuisRaccourciNetcha(id){
  await chargerMessagesUI();
 }
 async function chargerConversationsUI(){
- if(!jetonNetcha()){conversationsCacheNetcha=[];afficherRaccourcisGroupesNetcha();return}
+ if(!jetonNetcha()){conversationsCacheNetcha=[];actualiserBadgeMessagesNetcha();afficherRaccourcisGroupesNetcha();return}
  try{
   const d=await requeteNetcha('/api/conversations');
   const lignes=Array.isArray(d.conversations)?d.conversations:[];
@@ -2316,7 +2316,7 @@ async function lireToutesNotificationsNetcha(){
  try{await requeteNetcha('/api/notifications/read',{method:'POST',body:JSON.stringify({})});await chargerNotificationsNetcha()}
  catch(e){toast(e.message||'Impossible de marquer les notifications comme lues.')}
 }
-window.addEventListener('netcha:auth',()=>{actualiserBadgeNotificationsNetcha();if(document.getElementById('notificationsNetcha')?.style.display==='block')chargerNotificationsNetcha()});
+window.addEventListener('netcha:auth',()=>{actualiserBadgeNotificationsNetcha();chargerConversationsUI();if(document.getElementById('notificationsNetcha')?.style.display==='block')chargerNotificationsNetcha()});
 if(jetonNetcha())actualiserBadgeNotificationsNetcha();
 setInterval(async()=>{if(!jetonNetcha()||document.hidden)return;try{const d=await requeteNetcha('/api/conversations');conversationsCacheNetcha=Array.isArray(d.conversations)?d.conversations:[];actualiserBadgeMessagesNetcha();if(document.getElementById('messages')?.classList.contains('active')&&!activeConversationId)filtrerConversationsUI();await actualiserBadgeNotificationsNetcha()}catch(_){}},25000);
 </script>
