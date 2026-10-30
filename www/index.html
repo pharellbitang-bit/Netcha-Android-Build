@@ -2764,7 +2764,15 @@ async function netchaModules(){
  }catch(err){toast(err.message||'Chargement des modules impossible.')}
 }
 async function netchaOuvrirCercle(id){
- try{const d=await requeteNetcha('/api/cercles/'+id+'/publications');const posts=d.publications||[];const resume=posts.length?posts.map(p=>(p.auteur||'Membre')+' : '+(p.texte||'Publication média')).join('\n\n'):'Ce cercle ne contient pas encore de publication.';const choix=await dialogueNetcha({title:'Publications du cercle',description:resume,fields:[{name:'texte',label:'Publier dans ce cercle',type:'textarea',maxLength:5000}]});if(!choix||!choix.texte.trim())return;await requeteNetcha('/api/cercles/'+id+'/publications',{method:'POST',body:JSON.stringify({texte:choix.texte,type_media:'aucun'})});toast('Publication ajoutée.');netchaModules()}catch(e){toast(e.message)}
+ try{
+  const [d,s]=await Promise.all([requeteNetcha('/api/cercles/'+id+'/publications'),requeteNetcha('/api/cercles/'+id+'/partages').catch(()=>({partages:[]}))]);
+  const posts=d.publications||[],partages=s.partages||[];
+  const resume=[...posts.map(p=>(p.auteur||'Membre')+' : '+(p.texte||'Publication média')),...partages.map(p=>'↗ '+(p.type_contenu==='flash'?'Flash':'Événement')+' partagé : '+(p.titre||''))].join('\n\n')||'Ce cercle ne contient pas encore de publication.';
+  const choix=await dialogueNetcha({title:'Publications du cercle',description:resume,fields:[{name:'texte',label:'Publier dans ce cercle',type:'textarea',maxLength:5000}]});
+  if(!choix||!choix.texte.trim())return;
+  await requeteNetcha('/api/cercles/'+id+'/publications',{method:'POST',body:JSON.stringify({texte:choix.texte,type_media:'aucun'})});
+  toast('Publication ajoutée.');netchaModules();
+ }catch(e){toast(e.message)}
 }
 async function netchaGererDemandesCercle(id){
  try{
