@@ -12,3 +12,7 @@ The private Netcha backend source and database are not copied into this reposito
 ## Build
 
 Open the Actions tab and run **Build Netcha Android APK**, or push a commit to `main`. After a successful run, download the `netcha-android-debug-apk` artifact from that workflow run.
+
+## Mise à jour de la session persistante
+
+La version Android charge l'application Netcha hébergée sur Railway. La conservation de la connexion est gérée par l'application web et le serveur Netcha. Une nouvelle compilation Android est déclenchée pour republier l'APK de test avec cette mise à jour disponible au démarrage.
