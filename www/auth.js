@@ -5,26 +5,26 @@
     try{
       let jeton=localStorage.getItem('netcha_token');
       if(!jeton){
-        jeton=lireJetonPersistantNetcha()||'';
+        jeton=sessionStorage.getItem('netcha_token')||'';
         if(jeton)localStorage.setItem('netcha_token',jeton);
       }
       return jeton||'';
     }catch(_){
-      try{return lireJetonPersistantNetcha()||''}catch(__){return ''}
+      try{return sessionStorage.getItem('netcha_token')||''}catch(__){return ''}
     }
   }
   function enregistrerJetonPersistantNetcha(jeton){
-    try{localStorage.setItem('netcha_token',jeton);effacerJetonPersistantNetcha()}
+    try{localStorage.setItem('netcha_token',jeton);sessionStorage.removeItem('netcha_token')}
     catch(_){try{sessionStorage.setItem('netcha_token',jeton)}catch(__){}}
   }
   function effacerJetonPersistantNetcha(){
     try{localStorage.removeItem('netcha_token')}catch(_){}
-    try{effacerJetonPersistantNetcha()}catch(_){}
+    try{sessionStorage.removeItem('netcha_token')}catch(_){}
   }
   try{
-    const ancien=lireJetonPersistantNetcha();
+    const ancien=sessionStorage.getItem('netcha_token');
     if(ancien&&!localStorage.getItem('netcha_token'))localStorage.setItem('netcha_token',ancien);
-    if(ancien)effacerJetonPersistantNetcha();
+    if(ancien)sessionStorage.removeItem('netcha_token');
   }catch(_){}
 
   const topActions=document.querySelector('.top-actions');
