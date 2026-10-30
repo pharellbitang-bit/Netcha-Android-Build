@@ -1706,7 +1706,7 @@ async function ouvrirConversationUI(id,nom){
  const avatar=document.getElementById('conversationAvatarNetcha');
  if(avatar){
   const conv=conversationsCacheNetcha.find(x=>String(x.id)===String(id));
-  const url=conv&&mediaUrlNetcha(conv.avatar_url)?conv.avatar_url:'';
+  const url=conv?mediaUrlNetcha(conv.avatar_url):'';
   avatar.textContent=Array.from(String(nom||'N').trim())[0]?.toUpperCase()||'N';
   avatar.style.backgroundImage=url?'url("'+String(url).replace(/["\\]/g,'')+'")':'';
   avatar.style.backgroundSize='cover';avatar.style.backgroundPosition='center';
@@ -1937,7 +1937,7 @@ function ouvrirStoryUI(id){
  const auteurIndex=storyIndex=>groupeActif.findIndex(([,items])=>items.some(v=>String(v.id)===String(liste[storyIndex]?.id)));
  const sauterAuteur=sens=>{const groupe=auteurIndex(index)+sens;if(groupe<0||groupe>=groupeActif.length)return;const items=groupeActif[groupe][1];ouvrirStoryUI((sens>0?items[0]:items[items.length-1]).id)};
  let m=document.getElementById('storyViewerNetcha');if(!m){m=document.createElement('div');m.id='storyViewerNetcha';m.className='story-viewer-full';document.body.appendChild(m)}
- const esc=v=>echapperNetcha(String(v??'')),nom=esc(s.nom_affiche||s.identifiant||'Membre'),texte=esc(s.texte||''),url=typeof s.media_url==='string'&&(/^https:\/\//i.test(s.media_url)||typeof mediaUrlNetcha==='function'&&mediaUrlNetcha(s.media_url))?esc(s.media_url):'';
+ const esc=v=>echapperNetcha(String(v??'')),nom=esc(s.nom_affiche||s.identifiant||'Membre'),texte=esc(s.texte||''),mediaSource=mediaUrlNetcha(s.media_url),url=mediaSource?esc(mediaSource):'';
  let media='';if(url&&s.type_media==='image')media='<img src="'+url+'" alt="Story de '+nom+'">';else if(url&&s.type_media==='video')media='<video data-story-play src="'+url+'" playsinline controls autoplay preload="auto"></video>';
  const likesCount=Number(s.reactions_count)||0,commentsCount=Number(s.commentaires_count)||0,liked=!!s.aime_par_moi;
  const progressHtml=liste.map((item,i)=>'<span aria-label="Story '+(i+1)+' sur '+liste.length+'"><i style="width:'+(i<index?'100':'0')+'%"></i></span>').join('');
