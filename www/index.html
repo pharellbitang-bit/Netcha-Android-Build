@@ -194,7 +194,21 @@ body{background:radial-gradient(ellipse at 12% -10%,#202d4b55,transparent 36%),v
 #friends #mergedFriendsPanelNetcha button{max-width:100%;white-space:normal;line-height:1.35}
 @media(max-width:380px){#friends.screen{padding:18px 12px 30px}#friends #mergedFriendsPanelNetcha>.post{padding:14px!important}#friends #mergedFriendsPanelNetcha>.post>.section-head{align-items:flex-start}}
 
-.logo img{width:100%;height:100%;display:block;object-fit:cover;border-radius:12px}</style><style>
+.logo img{width:100%;height:100%;display:block;object-fit:cover;border-radius:12px}
+/* Univers Netcha — finition visuelle commune Web/Android */
+.netcha-module-card{border-radius:22px;border:1px solid color-mix(in srgb,var(--accent) 24%,var(--line));background:linear-gradient(145deg,color-mix(in srgb,var(--panel) 94%,var(--accent)),var(--panel) 72%);box-shadow:0 12px 30px #00000018;overflow:hidden;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.netcha-module-card:active{transform:scale(.99)}
+.netcha-module-card .post-copy{padding:16px}
+.netcha-module-card .post-copy>strong{display:block;font-size:16px;letter-spacing:-.25px}
+.netcha-module-card .post-copy p{color:var(--muted);margin:7px 0;font-size:13px;line-height:1.45}
+.netcha-module-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:12px}
+.netcha-module-actions .secondary{border-radius:14px;min-height:40px;padding:9px 14px;background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 19%,var(--panel)),var(--panel2));border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line));font-weight:750}
+.netcha-flash-card{border-radius:24px;overflow:hidden;background:#11121c;border:1px solid #ffffff18;box-shadow:0 16px 36px #00000035}
+.netcha-flash-card video{display:block;width:100%;margin:auto}
+html[data-netcha-lite="eco"] video{content-visibility:auto}
+html[data-netcha-lite="eco"] .netcha-flash-card video{background:#090a11}
+@media(prefers-reduced-motion:reduce){.netcha-module-card{transition:none}}
+</style><style>
 .news-feed{display:grid;gap:12px;margin:10px 0 22px}
 .news-feed-source-netcha{display:none!important}
 .news-card{overflow:hidden;background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 3px 12px #172b3508;min-width:0}
