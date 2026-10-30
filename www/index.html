@@ -1886,7 +1886,7 @@ async function chargerCommentairesStoryUI(id){
  try{
   const d=await requeteNetcha('/api/stories/'+encodeURIComponent(id)+'/comments');
   const items=d.commentaires||[];
-  zone.innerHTML=items.length?items.map(v=>'<article class="story-comment-row"><div class="story-comment-avatar">'+(v.avatar_url&&mediaUrlNetcha(v.avatar_url)?'<img src="'+echapperNetcha(v.avatar_url)+'" alt="">':echapperNetcha(Array.from(v.nom_affiche||v.identifiant||'M')[0].toUpperCase()))+'</div><div><strong>'+echapperNetcha(v.nom_affiche||v.identifiant||'Membre')+'</strong><p>'+echapperNetcha(v.texte||'')+'</p></div></article>').join(''):'';
+  zone.innerHTML=items.length?items.map(v=>'<article class="story-comment-row"><div class="story-comment-avatar">'+(v.avatar_url&&mediaUrlNetcha(v.avatar_url)?'<img src="'+echapperNetcha(mediaUrlNetcha(v.avatar_url))+'" alt="">':echapperNetcha(Array.from(v.nom_affiche||v.identifiant||'M')[0].toUpperCase()))+'</div><div><strong>'+echapperNetcha(v.nom_affiche||v.identifiant||'Membre')+'</strong><p>'+echapperNetcha(v.texte||'')+'</p></div></article>').join(''):'';
   const btn=document.querySelector('#storyViewerNetcha [data-toggle-comments]');
   if(btn)btn.textContent='💬 Commentaires ('+items.length+')';
  }catch(e){zone.innerHTML='<p class="story-interaction-empty">'+echapperNetcha(e.message||'Commentaires indisponibles.')+'</p>'}
@@ -1911,7 +1911,7 @@ async function ouvrirLikesStoryUI(id){
  try{
   const d=await requeteNetcha('/api/stories/'+encodeURIComponent(id)+'/likes');
   const items=d.likes||[];
-  panel.innerHTML=items.length?items.map(v=>'<article class="story-like-row"><div class="story-comment-avatar">'+(v.avatar_url&&mediaUrlNetcha(v.avatar_url)?'<img src="'+echapperNetcha(v.avatar_url)+'" alt="">':echapperNetcha(Array.from(v.nom_affiche||v.identifiant||'M')[0].toUpperCase()))+'</div><strong>'+echapperNetcha(v.nom_affiche||v.identifiant||'Membre')+'</strong><span>♥</span></article>').join(''):'<p class="story-interaction-empty">Personne n’a encore aimé cette story.</p>';
+  panel.innerHTML=items.length?items.map(v=>'<article class="story-like-row"><div class="story-comment-avatar">'+(v.avatar_url&&mediaUrlNetcha(v.avatar_url)?'<img src="'+echapperNetcha(mediaUrlNetcha(v.avatar_url))+'" alt="">':echapperNetcha(Array.from(v.nom_affiche||v.identifiant||'M')[0].toUpperCase()))+'</div><strong>'+echapperNetcha(v.nom_affiche||v.identifiant||'Membre')+'</strong><span>♥</span></article>').join(''):'<p class="story-interaction-empty">Personne n’a encore aimé cette story.</p>';
  }catch(e){panel.innerHTML='<p class="story-interaction-empty">'+echapperNetcha(e.message||'Liste indisponible.')+'</p>'}
 }
 let netchaStoryViewerTimer=null,netchaStoryViewerVideoHandler=null;
