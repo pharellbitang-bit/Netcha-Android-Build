@@ -65,6 +65,9 @@ jobs:
           print("OK : permissions caméra, microphone et notifications vérifiées dans le manifeste.")
           PY
 
+      - name: Configure Netcha launcher icon
+        run: python3 scripts/configure-android-icon.py
+
       - name: Build debug APK
         run: |
           cd android
