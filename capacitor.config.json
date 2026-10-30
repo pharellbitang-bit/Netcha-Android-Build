@@ -2,14 +2,14 @@
   "appId": "com.netcha.app",
   "appName": "Netcha",
   "webDir": "www",
-  "server": {
-    "url": "https://gentle-tranquility-production-db0a.up.railway.app",
-    "cleartext": false,
-    "allowNavigation": [
-      "gentle-tranquility-production-db0a.up.railway.app"
-    ]
-  },
   "android": {
     "allowMixedContent": false
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_icon_config_sample",
+      "iconColor": "#8b9cff",
+      "sound": null
+    }
   }
 }
