@@ -2578,57 +2578,76 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
 })();
 </script>
 <script>
-/* Notifications Android locales : synchronisation dès que Netcha est ouvert et connecté. */
+/* Badge Android : une notification active par notification serveur non lue.
+   Les notifications sont publiées uniquement lorsque l'application passe en arrière-plan.
+   Android/Samsung agrège les notifications actives pour le badge de l'icône. */
 (function(){
-  const KEY='netcha_android_notified_ids_v1';
-  let running=false,baselineDone=false;
+  const KEY='netcha_android_active_notification_ids_v2';
+  let running=false;
   function plugin(){return window.Capacitor?.Plugins?.LocalNotifications||null}
-  function known(){try{return new Set(JSON.parse(localStorage.getItem(KEY)||'[]').map(String))}catch(e){return new Set()}}
-  function save(set){localStorage.setItem(KEY,JSON.stringify(Array.from(set).slice(-250)))}
-  async function syncNotifications(){
+  function load(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){return {}}}
+  function save(map){localStorage.setItem(KEY,JSON.stringify(map))}
+  function localId(id){
+    const n=Number(id);
+    if(Number.isSafeInteger(n)&&n>0&&n<2147483000)return n;
+    let h=0;for(const c of String(id))h=((h<<5)-h+c.charCodeAt(0))|0;
+    return (Math.abs(h)%2000000000)+1;
+  }
+  async function syncNotifications(publishForBadge){
     if(running||!navigator.onLine||!window.jetonNetcha||!jetonNetcha())return;
     running=true;
     try{
-      const p=plugin();
       const response=await fetch('/api/notifications?limit=50',{headers:{Authorization:'Bearer '+jetonNetcha()}});
       if(!response.ok)return;
       const items=(await response.json()).notifications||[];
-      const seen=known();
-      if(!baselineDone && !localStorage.getItem(KEY)){
-        items.forEach(n=>seen.add(String(n.id)));
-        save(seen);baselineDone=true;return;
-      }
-      baselineDone=true;
-      if(!p){save(seen);return}
+      const unread=items.filter(n=>n.id!=null&&!n.lue);
+      const unreadIds=new Set(unread.map(n=>String(n.id)));
+      const p=plugin();
+      if(!p)return;
       let permission=await p.checkPermissions();
-      if(permission.display!=='granted')permission=await p.requestPermissions();
+      if(permission.display!=='granted'&&publishForBadge)permission=await p.requestPermissions();
       if(permission.display!=='granted')return;
-      const fresh=items.filter(n=>n.id!=null&&!seen.has(String(n.id)));
-      for(const n of fresh){
-        const numeric=Number(n.id);
-        const id=Number.isSafeInteger(numeric)&&numeric>0?numeric:Math.floor(Math.random()*2000000000)+1;
-        await p.schedule({notifications:[{
-          id,title:String(n.acteur||'Netcha'),
-          body:String(n.texte||'Nouvelle notification'),
-          channelId:'netcha-notifications',
-          schedule:{at:new Date(Date.now()+700)}
-        }]});
-        seen.add(String(n.id));
+      const active=load();
+      // Retire du badge les notifications que le serveur confirme comme lues.
+      const toCancel=Object.keys(active).filter(id=>!unreadIds.has(id));
+      if(toCancel.length){
+        await p.cancel({notifications:toCancel.map(id=>({id:Number(active[id])}))});
+        toCancel.forEach(id=>delete active[id]);
       }
-      save(seen);
-    }catch(error){console.warn('Netcha notifications:',error)}
+      // Une notification locale active par élément non lu, sans doublon.
+      if(publishForBadge){
+        for(const n of unread){
+          const key=String(n.id);
+          if(active[key])continue;
+          const id=localId(key);
+          await p.schedule({notifications:[{
+            id,title:String(n.acteur||'Netcha'),
+            body:String(n.texte||'Nouvelle notification'),
+            channelId:'netcha-notifications',
+            schedule:{at:new Date(Date.now()+900)}
+          }]});
+          active[key]=id;
+        }
+      }
+      save(active);
+    }catch(error){console.warn('Netcha badge notifications:',error)}
     finally{running=false}
   }
   async function init(){
     const p=plugin();
-    if(p){try{await p.createChannel({id:'netcha-notifications',name:'Notifications Netcha',description:'Notifications de votre compte Netcha',importance:5})}catch(e){}}
-    syncNotifications();
-    window.addEventListener('netcha:auth',syncNotifications);
-    window.addEventListener('online',syncNotifications);
-    document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncNotifications()});
-    setInterval(()=>{if(!document.hidden)syncNotifications()},30000);
+    if(p){try{await p.createChannel({id:'netcha-notifications',name:'Notifications Netcha',description:'Notifications non lues de votre compte Netcha',importance:5})}catch(e){}}
+    // Mise à jour de l'état lu/non lu sans interrompre l'utilisateur dans l'application.
+    syncNotifications(false);
+    window.addEventListener('netcha:auth',()=>syncNotifications(false));
+    window.addEventListener('online',()=>syncNotifications(false));
+    // Au moment où l'utilisateur quitte Netcha, matérialise les non-lues en notifications Android.
+    document.addEventListener('visibilitychange',()=>{
+      if(document.hidden)syncNotifications(true);
+      else syncNotifications(false);
+    });
+    // Le polling reste limité à l'application visible : pas de promesse de push en arrière-plan.
+    setInterval(()=>{if(!document.hidden)syncNotifications(false)},30000);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
-})();
-</script>
+})();</script>
 </body></html>
