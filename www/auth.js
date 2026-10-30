@@ -275,6 +275,24 @@
   const identityBirth=document.getElementById('netchaIdentityBirth');if(identityBirth)installerRaccourciAnneeNaissance(identityBirth,document.getElementById('netchaIdentityBirthYear'));
   envoyer(signupForm,'register','inscription');
   envoyer(loginForm,'login','connexion');
-  if(sessionStorage.getItem('netcha_token'))afficherProfilNetcha().then(verifierCompletionCompteNetcha).catch(()=>sessionStorage.removeItem('netcha_token'));
+  if(sessionStorage.getItem('netcha_token'))afficherProfilNetcha().then(verifierCompletionCompteNetcha).catch(()=>{sessionStorage.removeItem('netcha_token');window.dispatchEvent(new Event('netcha:auth'))});
   if(new URLSearchParams(window.location.search).has('reset'))openAuth('reset');
+})();
+/* Netcha : écran d'accès obligatoire avant la découverte de l'application. */
+(function(){
+  const style=document.createElement('style');
+  style.textContent='#netchaWelcomeGate{position:fixed;inset:0;z-index:105;background:radial-gradient(ellipse at 50% 25%,#242044,#10111b 52%,#090c14);color:#f7f7fc;display:none;flex-direction:column;align-items:center;justify-content:center;padding:28px 24px;font-family:Inter,system-ui,sans-serif}#netchaWelcomeGate.visible{display:flex}#netchaWelcomeGate h1{font-size:38px;text-align:center;margin:0 0 10px}#netchaWelcomeGate p{color:#b9b8ce;text-align:center;font-size:14px;line-height:1.6;margin:0 0 28px}#netchaWelcomeGate button{display:block;width:min(420px,100%);min-height:52px;margin:10px auto;border-radius:15px;font-size:14px;font-weight:850}#netchaWelcomeSignup{border:0;background:linear-gradient(110deg,#8b5cf6,#ec4899);color:white}#netchaWelcomeLogin{border:1px solid #55516f;background:#191827;color:#f7f7fc}';
+  document.head.appendChild(style);
+  const gate=document.createElement('div');
+  gate.id='netchaWelcomeGate';
+  const brand=document.createElement('h1');brand.textContent='Netcha';
+  const intro=document.createElement('p');intro.textContent='Crée ton compte ou connecte-toi pour découvrir les fonctionnalités de Netcha.';
+  const signup=document.createElement('button');signup.id='netchaWelcomeSignup';signup.type='button';signup.textContent='Créer un compte';
+  const login=document.createElement('button');login.id='netchaWelcomeLogin';login.type='button';login.textContent='Se connecter';
+  gate.append(brand,intro,signup,login);document.body.appendChild(gate);
+  const refresh=()=>{const locked=!sessionStorage.getItem('netcha_token');gate.classList.toggle('visible',locked);gate.setAttribute('aria-hidden',String(!locked));};
+  signup.addEventListener('click',()=>document.getElementById('netchaAuthTrigger')?.click());
+  login.addEventListener('click',()=>{document.getElementById('netchaAuthTrigger')?.click();document.getElementById('netchaLoginTab')?.click();});
+  window.addEventListener('netcha:auth',refresh);
+  refresh();
 })();
