@@ -845,7 +845,7 @@ function carteActualiteNetcha(a){
 }
 let rubriqueActualitesNetcha='Toutes';
 function normaliserRubriqueActualiteNetcha(valeur){
- return String(valeur||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('fr').replace(/[^a-z0-9]+/g,' ').trim();
+ return String(valeur||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('fr').replace(/[^a-z0-9]+/g,' ').trim();
 }
 function correspondCategorieActualiteNetcha(articleCategorie,filtre){
  const cat=normaliserRubriqueActualiteNetcha(articleCategorie),f=normaliserRubriqueActualiteNetcha(filtre);
