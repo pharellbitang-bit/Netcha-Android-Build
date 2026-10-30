@@ -644,6 +644,18 @@ body.netcha-messages-focus #activeConversation .instagram-send-netcha{font-size:
  .story .ring{width:82px!important;height:82px!important}
 }
 </style>
+<script>
+/* Android: l'interface est embarquée dans l'APK ; seules les API restent distantes. */
+(function(){
+  const API='https://gentle-tranquility-production-db0a.up.railway.app';
+  window.NETCHA_API_BASE=API;
+  const nativeFetch=window.fetch.bind(window);
+  window.fetch=function(input,init){
+    if(typeof input==='string' && input.startsWith('/') && !input.startsWith('//')) input=API+input;
+    return nativeFetch(input,init);
+  };
+})();
+</script>
 </head>
 <body data-netcha-launch-mode="social-only"><main class="app"><header class="top"><div class="brand"><div class="logo"><img src="/icons/netcha.svg" alt="Netcha"></div>netcha</div><div class="top-actions"><button class="iconbtn" aria-label="Rechercher des personnes" onclick="go('feed');setTimeout(()=>document.getElementById('homeMemberSearch')?.focus(),80)">⌕</button><button class="iconbtn" aria-label="Messages" onclick="go('messages')">✉</button><button class="iconbtn" id="notificationBellNetcha" aria-label="Notifications" onclick="ouvrirNotificationsNetcha()">♧</button></div></header>
 <section id="feed" class="screen active"><div class="welcome"><div class="eyebrow">NETCHA</div><h1>Accueil</h1></div><div class="section-head"><h2>Stories</h2><button class="textbtn" onclick="voirToutesStoriesNetcha()">Voir tout ↗</button></div><div class="stories" id="storyList"><div class="story" onclick="creerStoryUI()"><div class="ring"><div class="avatar">＋</div></div>Ta story</div></div><div class="section-head" style="margin-top:18px" id="suggestedPeopleHeadingNetcha" hidden><h2>Suggestions d’amitié</h2><button class="textbtn" onclick="chargerSuggestionsNetcha()">Actualiser</button></div><div id="suggestedPeopleNetcha" class="friend-suggestion-strip" hidden aria-label="Suggestions de membres Netcha" aria-live="polite"></div><p id="suggestedPeopleStatusNetcha" class="muted" style="font-size:11px;margin:0 2px 10px" hidden></p><div class="searchbox"><span>⌕</span><input id="homeMemberSearch" placeholder="Rechercher un nom ou identifiant Netcha" autocomplete="off" oninput="rechercherMembresAccueilNetcha(this.value)" aria-label="Rechercher une personne sur Netcha"></div><div id="homeMemberResults" aria-live="polite"></div><button class="secondary" style="width:100%;margin:8px 0 14px" onclick="partagerInvitationNetcha()">↗ Inviter des amis sur Netcha</button><p id="invitationStatsNetcha" class="muted" style="font-size:12px;margin-top:-8px"></p>
@@ -2545,5 +2557,78 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
       .catch(error => console.warn('Netcha: installation hors ligne indisponible', error));
   });
 }
+</script>
+<script>
+/* État réseau visible sans remplacer l'application par une page d'erreur. */
+(function(){
+  function render(){
+    let bar=document.getElementById('netchaOfflineStatus');
+    if(!bar){
+      bar=document.createElement('div');bar.id='netchaOfflineStatus';
+      bar.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;padding:7px 12px;text-align:center;font:600 12px system-ui;background:#7c2d12;color:#fff;display:none';
+      bar.textContent='Mode hors connexion — les données seront synchronisées au retour du réseau';
+      document.body.appendChild(bar);
+    }
+    bar.style.display=navigator.onLine?'none':'block';
+  }
+  window.addEventListener('online',render);
+  window.addEventListener('offline',render);
+  document.addEventListener('DOMContentLoaded',render);
+  if(document.readyState!=='loading')render();
+})();
+</script>
+<script>
+/* Notifications Android locales : synchronisation dès que Netcha est ouvert et connecté. */
+(function(){
+  const KEY='netcha_android_notified_ids_v1';
+  let running=false,baselineDone=false;
+  function plugin(){return window.Capacitor?.Plugins?.LocalNotifications||null}
+  function known(){try{return new Set(JSON.parse(localStorage.getItem(KEY)||'[]').map(String))}catch(e){return new Set()}}
+  function save(set){localStorage.setItem(KEY,JSON.stringify(Array.from(set).slice(-250)))}
+  async function syncNotifications(){
+    if(running||!navigator.onLine||!window.jetonNetcha||!jetonNetcha())return;
+    running=true;
+    try{
+      const p=plugin();
+      const response=await fetch('/api/notifications?limit=50',{headers:{Authorization:'Bearer '+jetonNetcha()}});
+      if(!response.ok)return;
+      const items=(await response.json()).notifications||[];
+      const seen=known();
+      if(!baselineDone && !localStorage.getItem(KEY)){
+        items.forEach(n=>seen.add(String(n.id)));
+        save(seen);baselineDone=true;return;
+      }
+      baselineDone=true;
+      if(!p){save(seen);return}
+      let permission=await p.checkPermissions();
+      if(permission.display!=='granted')permission=await p.requestPermissions();
+      if(permission.display!=='granted')return;
+      const fresh=items.filter(n=>n.id!=null&&!seen.has(String(n.id)));
+      for(const n of fresh){
+        const numeric=Number(n.id);
+        const id=Number.isSafeInteger(numeric)&&numeric>0?numeric:Math.floor(Math.random()*2000000000)+1;
+        await p.schedule({notifications:[{
+          id,title:String(n.acteur||'Netcha'),
+          body:String(n.texte||'Nouvelle notification'),
+          channelId:'netcha-notifications',
+          schedule:{at:new Date(Date.now()+700)}
+        }]});
+        seen.add(String(n.id));
+      }
+      save(seen);
+    }catch(error){console.warn('Netcha notifications:',error)}
+    finally{running=false}
+  }
+  async function init(){
+    const p=plugin();
+    if(p){try{await p.createChannel({id:'netcha-notifications',name:'Notifications Netcha',description:'Notifications de votre compte Netcha',importance:5})}catch(e){}}
+    syncNotifications();
+    window.addEventListener('netcha:auth',syncNotifications);
+    window.addEventListener('online',syncNotifications);
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncNotifications()});
+    setInterval(()=>{if(!document.hidden)syncNotifications()},30000);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
 </script>
 </body></html>
