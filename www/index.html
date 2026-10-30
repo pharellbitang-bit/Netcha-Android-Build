@@ -833,7 +833,7 @@ function dialogueNetcha(config){return new Promise(resolve=>{const modal=documen
 function storyToast(name){toast('Story de '+name)}function jetonNetcha(){return sessionStorage.getItem('netcha_token')||''}
 function echapperNetcha(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function dateNetcha(v){try{return new Date(v).toLocaleString('fr-FR',{dateStyle:'medium',timeStyle:'short'})}catch(e){return ''}}
-function mediaUrlNetcha(url){return typeof url==='string'&&(/^https:\/\//i.test(url)||/^\/api\/media\/accounts\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp|gif|mp4|webm|mov)$/i.test(url)||/^\/api\/media\/public\/public\/[0-9a-f-]{36}\/[0-9a-f]{32}\.(jpg|png|webp|gif)$/i.test(url));}
+function mediaUrlNetcha(url){if(typeof url!=='string')return '';const valeur=url.trim();if(!valeur||/[\\\\\"'<>\\s]/.test(valeur))return '';if(/^https:\/\//i.test(valeur))return valeur;if(/^\/api\/media\/accounts\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp|gif|mp4|webm|mov)$/i.test(valeur)||/^\/api\/media\/public\/public\/[0-9a-f-]{36}\/[0-9a-f]{32}\.(jpg|png|webp|gif)$/i.test(valeur))return valeur;return '';}
 let actualitesOffsetNetcha=0,actualitesTotalNetcha=0,actualitesChargementNetcha=false,actualitesHasMoreNetcha=false,actualitesGenerationNetcha=0;
 function carteActualiteNetcha(a){
  const titre=echapperNetcha(a.titre||'Article d’actualité'),source=echapperNetcha(a.source||'Source d’information'),categorie=echapperNetcha(a.categorie||'Actualités'),resume=echapperNetcha(a.resume||''),date=a.date_publication?echapperNetcha(dateNetcha(a.date_publication)):'';
