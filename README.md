@@ -1,18 +1,23 @@
 # Netcha Android build
 
-This public repository contains only the Android wrapper and the workflow used to build a test APK for the existing Netcha web application.
+Ce dépôt contient l'enveloppe Android Capacitor de **Netcha uniquement**.
 
-- Live app: https://gentle-tranquility-production-db0a.up.railway.app/
-- Android application ID: `com.netcha.app`
-- Build output: GitHub Actions artifact `netcha-android-debug-apk`
-- This is a debug APK for testing, not a signed Play Store release.
+- Application : `com.netcha.app`
+- Interface : embarquée dans l'APK (l'écran principal reste disponible sans réseau)
+- API distante : serveur Netcha sur Railway
+- Notifications : notifications Android locales à partir des notifications récupérées depuis l'API
+- APK : artifact GitHub Actions `netcha-android-debug-apk`
 
-The private Netcha backend source and database are not copied into this repository. NetchaPlus is not part of this project.
+## Fonctionnement hors connexion
 
-## Build
+L'APK charge désormais son interface depuis les fichiers inclus dans l'application, et non plus depuis une page Web distante. Les requêtes API restent dirigées vers le serveur Netcha. En cas de coupure, l'interface reste affichée et un indicateur signale l'absence de réseau ; les fonctions nécessitant le serveur reprennent à la reconnexion.
 
-Open the Actions tab and run **Build Netcha Android APK**, or push a commit to `main`. After a successful run, download the `netcha-android-debug-apk` artifact from that workflow run.
+## Notifications
 
-## Mise à jour de la session persistante
+Lorsque Netcha est ouvert et connecté, l'application vérifie régulièrement les notifications du compte et affiche les nouvelles notifications dans le centre de notifications Android. Android peut retarder ou suspendre cette vérification lorsque l'application est en arrière-plan ou fermée. Sans service push externe ni tâche native persistante dédiée, une livraison immédiate en arrière-plan n'est pas garantie.
 
-La version Android charge l'application Netcha hébergée sur Railway. La conservation de la connexion est gérée par l'application web et le serveur Netcha. Une nouvelle compilation Android est déclenchée pour republier l'APK de test avec cette mise à jour disponible au démarrage.
+Aucun Firebase n'est utilisé.
+
+## Compilation
+
+Le workflow **Build Netcha Android APK** compile une APK de test. Elle n'est pas signée pour publication Play Store.
