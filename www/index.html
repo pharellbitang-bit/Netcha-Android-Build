@@ -2758,8 +2758,8 @@ async function netchaModules(){
  const [c,f,e]=await Promise.all([requeteNetcha('/api/cercles'),requeteNetcha('/api/flash'),requeteNetcha('/api/evenements')]);\n if(!currentAccountIdNetcha){try{const profil=await requeteNetcha('/api/profile');currentAccountIdNetcha=String(profil.profil?.id||profil.id||'')}catch(_){}}
  const el=id=>document.getElementById(id),zoneC=el('netchaCercles'),zoneF=el('netchaFlash'),zoneE=el('netchaEvents');
  if(zoneC)zoneC.innerHTML=(c.cercles||[]).map(x=>'<article class="post netcha-module-card"><div class="post-copy"><strong>'+echapperNetcha(x.nom)+'</strong><p>'+echapperNetcha(x.description||'')+'</p><span class="muted">'+x.membres+' membres · '+(x.visibilite==='prive'?'Privé':'Public')+'</span><div class="netcha-module-actions"><button class="secondary" onclick="netchaOuvrirCercle('+x.id+')">'+(x.membre?'Ouvrir le cercle':'Voir le cercle')+'</button>'+(x.membre?'':'<button class="textbtn" onclick="netchaJoin('+x.id+')">Rejoindre</button>')+(String(x.createur_id)===String(currentAccountIdNetcha)?'<button class="textbtn" onclick="netchaGererDemandesCercle('+x.id+')">Demandes</button>':'')+'</div></div></article>').join('')||'<p class="muted">Aucun cercle pour le moment.</p>';
- if(zoneF)zoneF.innerHTML=(f.flash||[]).map(x=>'<article class="post netcha-flash-card"><div class="post-head"><div class="avatar">'+echapperNetcha((x.auteur||'N').slice(0,1).toUpperCase())+'</div><div class="user-info"><strong>'+echapperNetcha(x.auteur)+'</strong><span>Netcha Flash</span></div></div><video controls playsinline preload="none" src="'+echapperNetcha(mediaUrlNetcha(x.media_url))+'" style="width:100%;max-height:520px;aspect-ratio:9/16;object-fit:cover;background:#080910"></video><div class="post-copy">'+echapperNetcha(x.legende)+'</div><div class="post-actions"><button class="action" onclick="netchaReact('+x.id+')">♥ '+x.reactions+'</button><button class="action" onclick="netchaCommenterFlash('+x.id+')">Commenter</button></div></article>').join('')||'<p class="muted">Aucun Flash dans ton réseau.</p>';
- if(zoneE)zoneE.innerHTML=(e.evenements||[]).map(x=>'<article class="post netcha-module-card"><div class="post-copy"><span class="eyebrow">ÉVÉNEMENT</span><strong>'+echapperNetcha(x.titre)+'</strong><p>'+echapperNetcha(x.lieu||'Lieu à préciser')+' · '+dateNetcha(x.debut_le)+'</p><p>'+echapperNetcha(x.description||'')+'</p><div class="netcha-module-actions"><button class="secondary" onclick="netchaRsvp('+x.id+')">Répondre</button></div></div></article>').join('')||'<p class="muted">Aucun événement à venir.</p>';
+ if(zoneF)zoneF.innerHTML=(f.flash||[]).map(x=>'<article class="post netcha-flash-card"><div class="post-head"><div class="avatar">'+echapperNetcha((x.auteur||'N').slice(0,1).toUpperCase())+'</div><div class="user-info"><strong>'+echapperNetcha(x.auteur)+'</strong><span>Netcha Flash</span></div></div><video controls playsinline preload="none" src="'+echapperNetcha(mediaUrlNetcha(x.media_url))+'" style="width:100%;max-height:520px;aspect-ratio:9/16;object-fit:cover;background:#080910"></video><div class="post-copy">'+echapperNetcha(x.legende)+'</div><div class="post-actions"><button class="action" onclick="netchaReact('+x.id+')">♥ '+x.reactions+'</button><button class="action" onclick="netchaCommenterFlash('+x.id+')">Commenter</button><button class="action" onclick="netchaPartagerContenu('flash','+x.id+')">Partager</button></div></article>').join('')||'<p class="muted">Aucun Flash dans ton réseau.</p>';
+ if(zoneE)zoneE.innerHTML=(e.evenements||[]).map(x=>'<article class="post netcha-module-card"><div class="post-copy"><span class="eyebrow">ÉVÉNEMENT</span><strong>'+echapperNetcha(x.titre)+'</strong><p>'+echapperNetcha(x.lieu||'Lieu à préciser')+' · '+dateNetcha(x.debut_le)+'</p><p>'+echapperNetcha(x.description||'')+'</p><div class="netcha-module-actions"><button class="secondary" onclick="netchaRsvp('+x.id+')">Répondre</button><button class="textbtn" onclick="netchaPartagerContenu('evenement','+x.id+')">Partager</button>'+(String(x.createur_id)===String(currentAccountIdNetcha)?'<button class="textbtn" onclick="netchaInviterEvenement('+x.id+')">Inviter des amis</button>':'')+'</div></div></article>').join('')||'<p class="muted">Aucun événement à venir.</p>';
  netchaAppliquerLite();
  }catch(err){toast(err.message||'Chargement des modules impossible.')}
 }
@@ -2779,6 +2779,31 @@ async function netchaGererDemandesCercle(id){
   toast(choix.decision==='accepter'?'Demande acceptée.':'Demande refusée.');netchaModules();
  }catch(e){toast(e.message)}
 }
+
+async function netchaPartagerContenu(type,id){
+ try{
+  const [c,co]=await Promise.all([requeteNetcha('/api/cercles'),requeteNetcha('/api/conversations')]);
+  const options=(c.cercles||[]).filter(x=>x.membre).map(x=>({value:'cercle:'+x.id,label:'Cercle · '+x.nom}))
+   .concat((co.conversations||[]).map(x=>({value:'conversation:'+x.id,label:'Discussion · '+(x.nom||'Conversation')})));
+  if(!options.length){toast('Rejoins un cercle ou ouvre une discussion avant de partager.');return}
+  const v=await dialogueNetcha({title:'Partager dans Netcha',fields:[{name:'destination',label:'Destination',type:'select',value:options[0].value,options}]});
+  if(!v)return;
+  const [destination_type,destination_id]=v.destination.split(':');
+  await requeteNetcha('/api/contenu/partager',{method:'POST',body:JSON.stringify({type_contenu:type,contenu_id:String(id),destination_type,destination_id})});
+  toast('Contenu partagé.');netchaModules();
+ }catch(e){toast(e.message)}
+}
+async function netchaInviterEvenement(id){
+ try{
+  const d=await requeteNetcha('/api/friends'),amis=d.amis||[];
+  if(!amis.length){toast('Ajoute des amis Netcha pour les inviter.');return}
+  const v=await dialogueNetcha({title:'Inviter un ami',fields:[{name:'ami_id',label:'Ami Netcha',type:'select',value:amis[0].id,options:amis.map(a=>({value:a.id,label:a.nom_affiche||a.identifiant}))}]});
+  if(!v)return;
+  await requeteNetcha('/api/evenements/'+id+'/inviter',{method:'POST',body:JSON.stringify({membres:[v.ami_id]})});
+  toast('Invitation envoyée.');netchaModules();
+ }catch(e){toast(e.message)}
+}
+
 async function netchaCreerCercle(){const v=await dialogueNetcha({title:'Créer un cercle',fields:[{name:'nom',label:'Nom',required:true,maxLength:80},{name:'description',label:'Description',type:'textarea',maxLength:1000},{name:'visibilite',label:'Visibilité',type:'select',value:'public',options:[{value:'public',label:'Public'},{value:'prive',label:'Privé'}]}]});if(!v)return;try{await requeteNetcha('/api/cercles',{method:'POST',body:JSON.stringify(v)});toast('Cercle créé.');netchaModules()}catch(e){toast(e.message)}}
 async function netchaJoin(id){try{const r=await requeteNetcha('/api/cercles/'+id+'/join',{method:'POST',body:'{}'});toast(r.message);netchaModules()}catch(e){toast(e.message)}}
 async function netchaCreerFlash(){const v=await dialogueNetcha({title:'Publier un Flash',fields:[{name:'legende',label:'Légende',type:'textarea',maxLength:2200}]});if(!v)return;const pick=document.createElement('input');pick.type='file';pick.accept='video/mp4,video/webm,video/quicktime';pick.onchange=async()=>{const file=pick.files[0];if(!file)return;if(file.size>25*1024*1024){toast('La vidéo dépasse la limite de 25 Mo.');return}try{const duree=await new Promise((resolve,reject)=>{const video=document.createElement('video');video.preload='metadata';video.onloadedmetadata=()=>{URL.revokeObjectURL(video.src);resolve(video.duration)};video.onerror=()=>reject(new Error('Vidéo illisible.'));video.src=URL.createObjectURL(file)});if(!Number.isFinite(duree)||duree<1||duree>180){toast('La vidéo doit durer entre 1 et 180 secondes.');return}const up=await fetch('/api/media/upload',{method:'PUT',headers:{Authorization:'Bearer '+jetonNetcha(),'Content-Type':file.type},body:file});const media=await up.json();if(!up.ok)throw new Error(media.erreur||'Envoi impossible');await requeteNetcha('/api/flash',{method:'POST',body:JSON.stringify({media_url:media.media_url,legende:v.legende||'',duree_secondes:Math.ceil(duree)})});toast('Flash publié.');netchaModules()}catch(e){toast(e.message)}};pick.click()}
