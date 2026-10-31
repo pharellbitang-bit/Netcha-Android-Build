@@ -826,7 +826,19 @@ body:has(#circles.active) .bottom,body:has(#circleDetail.active) .bottom{display
 .netcha-circle-composer-tools .muted{font-size:11px;flex:1;min-width:65px;overflow-wrap:anywhere}
 .netcha-circle-composer button:disabled{opacity:.55;cursor:wait}
 .netcha-circle-post-progress{min-height:16px;color:var(--cyan);font-size:12px}
-</style></head>
+</style>
+<style id="netcha-circle-title-photo-spacing">
+/* La photo du cercle garde toujours son espace ; le nom reste dessous. */
+.netcha-my-circle-card{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:8px!important;overflow:visible!important}
+.netcha-my-circle-open{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;gap:8px!important;min-width:0!important;width:100%!important;overflow:visible!important}
+.netcha-my-circle-photo{position:relative!important;display:flex!important;flex:0 0 66px!important;width:66px!important;height:66px!important;min-width:66px!important;min-height:66px!important;margin:0 auto!important;z-index:1!important;overflow:hidden!important;border-radius:50%!important}
+.netcha-my-circle-photo img{position:absolute!important;inset:0!important;display:block!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:cover!important;border-radius:50%!important}
+.netcha-my-circle-open strong{position:static!important;display:block!important;flex:none!important;width:100%!important;max-width:100%!important;min-height:16px!important;margin:0!important;padding:0 2px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;text-align:center!important;line-height:1.3!important;z-index:2!important}
+.netcha-my-circle-open small{display:block!important;position:static!important;width:100%!important;text-align:center!important}
+.netcha-circle-detail-photo{display:block!important;position:relative!important;width:88px!important;height:88px!important;min-width:88px!important;min-height:88px!important;object-fit:cover!important;border-radius:50%!important;margin:0 auto 14px!important;z-index:1!important}
+.netcha-circle-detail-card h2{position:static!important;display:block!important;margin:0 0 8px!important;overflow-wrap:anywhere!important;text-align:center}
+</style>
+</head>
 <body data-netcha-launch-mode="social-only"><main class="app"><header class="top"><div class="brand"><div class="logo">n</div>netcha</div><div class="top-actions"><button class="iconbtn" aria-label="Rechercher des personnes" onclick="go('feed');setTimeout(()=>document.getElementById('homeMemberSearch')?.focus(),80)">⌕</button><button class="iconbtn" aria-label="Messages" onclick="go('messages')">✉</button><button class="iconbtn" id="notificationBellNetcha" aria-label="Notifications" onclick="ouvrirNotificationsNetcha()">♧</button><button class="netcha-account-button" type="button" onclick="go('profile')">Compte</button></div></header><script>
 const NETCHA_API_ORIGIN = "https://gentle-tranquility-production-db0a.up.railway.app";
 (function(){const originalFetch=window.fetch.bind(window);window.netchaApiUrl=function(value){const raw=value instanceof Request?value.url:(value instanceof URL?value.href:String(value||''));const resolved=new URL(raw,window.location.href);if(resolved.pathname==='/api'||resolved.pathname.startsWith('/api/'))return NETCHA_API_ORIGIN+resolved.pathname+resolved.search+resolved.hash;return raw};window.fetch=function(input,init){const target=window.netchaApiUrl(input),original=input instanceof Request?input.url:(input instanceof URL?input.href:String(input||''));if(target!==original)input=input instanceof Request?new Request(target,input):target;return originalFetch(input,init)}})();
