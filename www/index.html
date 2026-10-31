@@ -964,8 +964,8 @@ const NETCHA_API_ORIGIN = "https://gentle-tranquility-production-db0a.up.railway
  <div class="netcha-circle-search"><span>⌕</span><input id="circleSearchNetcha" placeholder="Rechercher un cercle" oninput="filtrerCerclesNetcha(this.value)"></div>
  <div class="netcha-circle-categories"><button class="active" onclick="filtrerCategorieCerclesNetcha('Pour toi',this)">★ Pour toi</button><button onclick="filtrerCategorieCerclesNetcha('Sport',this)">◉ Sport</button><button onclick="filtrerCategorieCerclesNetcha('Musique',this)">♫ Musique</button><button onclick="filtrerCategorieCerclesNetcha('Études',this)">⌂ Études</button><button onclick="filtrerCategorieCerclesNetcha('Business',this)">▣ Business</button><button onclick="filtrerCategorieCerclesNetcha('Technologie',this)">⌘ Technologie</button><button onclick="filtrerCategorieCerclesNetcha('Divertissement',this)">✦ Divertissement</button><button onclick="filtrerCategorieCerclesNetcha('Mode',this)">◇ Mode</button><button onclick="filtrerCategorieCerclesNetcha('Jeux vidéo',this)">🎮 Jeux vidéo</button><button onclick="filtrerCategorieCerclesNetcha('Autres',this)">＋ Autres</button></div>
  <div class="netcha-circle-section-head"><h2>Suggestions de cercles</h2><button class="textbtn" onclick="chargerExplorationCerclesNetcha()">Actualiser ↻</button></div>
- <div id="circleSuggestionsNetcha" class="netcha-circle-suggestions"><p class="muted">Chargement des suggestions…</p></div>
- <div id="circleSuggestionsSentinelNetcha" aria-hidden="true" style="height:1px"></div><button id="circleSuggestionsMoreNetcha" type="button" class="secondary" hidden onclick="netchaChargerSuiteCercles()" style="width:100%;margin:6px 0 12px">Voir plus de cercles</button>
+ <div id="circleSuggestionsNetcha" class="netcha-circle-suggestions"><p class="muted">Chargement des suggestions…</p><div id="circleSuggestionsSentinelNetcha" aria-hidden="true" style="flex:0 0 1px;width:1px"></div></div>
+ <button id="circleSuggestionsMoreNetcha" type="button" class="secondary" hidden onclick="netchaChargerSuiteCercles()" style="width:100%;margin:6px 0 12px">Voir plus de cercles</button>
  <div class="netcha-circle-section-head"><h2>Publications des cercles</h2><button class="textbtn" onclick="netchaCreerCercle()">＋ Créer</button></div>
  <div id="circleFeedNetcha"><p class="muted">Chargement des publications…</p></div>
 </section>
@@ -2958,12 +2958,12 @@ function netchaPrechargerPhotosCercles(liste){
  (liste||[]).slice(0,6).forEach(x=>{const url=mediaUrlNetcha(x.photo_url);if(url){const img=new Image();img.decoding='async';img.src=url;}});
 }
 function netchaConfigurerChargementCercles(){
- const sentinelle=document.getElementById('circleSuggestionsSentinelNetcha'),secours=document.getElementById('circleSuggestionsMoreNetcha');
+ const zone=document.getElementById('circleSuggestionsNetcha'),sentinelle=document.getElementById('circleSuggestionsSentinelNetcha'),secours=document.getElementById('circleSuggestionsMoreNetcha');
  if(netchaCerclesObserver){netchaCerclesObserver.disconnect();netchaCerclesObserver=null;}
  if(!netchaCerclesHasMore){if(secours)secours.hidden=true;return;}
- if('IntersectionObserver' in window&&sentinelle){
+ if('IntersectionObserver' in window&&sentinelle&&zone){
   if(secours)secours.hidden=true;
-  netchaCerclesObserver=new IntersectionObserver(entries=>{if(entries.some(x=>x.isIntersecting))netchaChargerSuiteCercles();},{root:null,rootMargin:'500px 0px',threshold:0});
+  netchaCerclesObserver=new IntersectionObserver(entries=>{if(entries.some(x=>x.isIntersecting))netchaChargerSuiteCercles();},{root:zone,rootMargin:'0px 500px 0px 0px',threshold:0});
   netchaCerclesObserver.observe(sentinelle);
  }else if(secours){secours.hidden=false;}
 }
@@ -2985,9 +2985,10 @@ async function chargerExplorationCerclesNetcha(options={}){
   netchaCerclesOffset=Number(d.next_offset??netchaCerclesCache.length);
   netchaCerclesHasMore=d.has_more===true;
   if(s){
-   if(!append)s.innerHTML='';
-   if(page.length)s.insertAdjacentHTML('beforeend',page.map((x,i)=>netchaCarteSuggestionCercle(x,append?i+netchaCerclesCache.length-page.length:i)).join(''));
-   if(!netchaCerclesCache.length)s.innerHTML='<p class="muted">Aucun cercle public ne correspond à cette recherche.</p>';
+   let sentinelle=s.querySelector('#circleSuggestionsSentinelNetcha');
+   if(!append){s.innerHTML='';s.insertAdjacentHTML('beforeend','<div id="circleSuggestionsSentinelNetcha" aria-hidden="true" style="flex:0 0 1px;width:1px"></div>');sentinelle=s.querySelector('#circleSuggestionsSentinelNetcha');}
+   if(page.length){const html=page.map((x,i)=>netchaCarteSuggestionCercle(x,append?i+netchaCerclesCache.length-page.length:i)).join('');if(sentinelle)sentinelle.insertAdjacentHTML('beforebegin',html);else s.insertAdjacentHTML('beforeend',html);}
+   if(!netchaCerclesCache.length){s.innerHTML='<p class="muted">Aucun cercle public ne correspond à cette recherche.</p><div id="circleSuggestionsSentinelNetcha" aria-hidden="true" style="flex:0 0 1px;width:1px"></div>';}
   }
   netchaPrechargerPhotosCercles(page);
   if(!append&&f)f.innerHTML=(d.publications||[]).map(p=>'<article class="netcha-circle-post"><div class="netcha-circle-post-head"><div class="netcha-circle-post-avatar">'+echapperNetcha((p.cercle||'C').slice(0,1).toUpperCase())+'</div><div><strong>'+echapperNetcha(p.cercle)+'</strong><small>'+echapperNetcha(p.auteur)+' · '+dateNetcha(p.cree_le)+'</small></div>'+(String(p.auteur_id)===String(currentAccountIdNetcha)?'<button type="button" class="netcha-circle-more" aria-label="Options de ma publication" onclick="netchaSupprimerMedia(\'cercle\','+p.id+','+p.cercle_id+')">⋮</button>':'')+'</div>'+(p.texte?'<p class="netcha-circle-post-text">'+echapperNetcha(p.texte)+'</p>':'')+(p.media_url?(p.type_media==='video'?'<video controls playsinline preload="metadata" src="'+echapperNetcha(mediaUrlNetcha(p.media_url))+'"></video>':'<img loading="lazy" src="'+echapperNetcha(mediaUrlNetcha(p.media_url))+'" alt="Média publié dans le cercle">')+netchaBoutonTelechargerMedia(p.media_url,p.cercle_id,p.id):'')+'<div class="netcha-circle-post-actions"><button type="button" onclick="netchaOuvrirCercle('+p.cercle_id+')">Ouvrir le cercle · '+p.membres+' membres</button></div></article>').join('')||'<p class="muted">Les publications des cercles apparaîtront ici.</p>';
