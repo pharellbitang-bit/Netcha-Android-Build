@@ -231,9 +231,13 @@
           // Réactive les écrans et leurs chargements sans recharger le WebView.
           // Le rechargement complet laissait l'écran Accueil actif sans relancer
           // ses chargements (stories et fil), donnant l'impression que l'app était bloquée.
-          if(typeof window.go==='function') window.go('feed');
-          try{if(typeof window.netchaModules==='function') await window.netchaModules()}catch(err){console.warn('Modules Netcha indisponibles',err)}
-          try{if(typeof window.netchaAppliquerLite==='function') await window.netchaAppliquerLite()}catch(err){console.warn('Réglages Netcha indisponibles',err)}
+          if(typeof window.go==='function') window.go('feed',{skipFeedLoad:true});
+          if(typeof window.netchaInitialiserApresConnexion==='function'){
+            try{await window.netchaInitialiserApresConnexion()}catch(err){console.warn('Réinitialisation Netcha après connexion indisponible',err)}
+          }else{
+            try{if(typeof window.netchaModules==='function') await window.netchaModules()}catch(err){console.warn('Modules Netcha indisponibles',err)}
+            try{if(typeof window.netchaAppliquerLite==='function') await window.netchaAppliquerLite()}catch(err){console.warn('Réglages Netcha indisponibles',err)}
+          }
           await verifierCompletionCompteNetcha();
         }
       }catch(err){
