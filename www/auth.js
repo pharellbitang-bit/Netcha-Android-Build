@@ -1,32 +1,6 @@
 (function(){
-  // Conserver la session après fermeture complète de l'application.
-  // Migration transparente de l'ancien stockage temporaire.
-  function lireJetonPersistantNetcha(){
-    try{
-      let jeton=localStorage.getItem('netcha_token');
-      if(!jeton){
-        jeton=sessionStorage.getItem('netcha_token')||'';
-        if(jeton)localStorage.setItem('netcha_token',jeton);
-      }
-      return jeton||'';
-    }catch(_){
-      try{return sessionStorage.getItem('netcha_token')||''}catch(__){return ''}
-    }
-  }
-  function enregistrerJetonPersistantNetcha(jeton){
-    try{localStorage.setItem('netcha_token',jeton);sessionStorage.removeItem('netcha_token')}
-    catch(_){try{sessionStorage.setItem('netcha_token',jeton)}catch(__){}}
-  }
-  function effacerJetonPersistantNetcha(){
-    try{localStorage.removeItem('netcha_token')}catch(_){}
-    try{sessionStorage.removeItem('netcha_token')}catch(_){}
-  }
-  try{
-    const ancien=sessionStorage.getItem('netcha_token');
-    if(ancien&&!localStorage.getItem('netcha_token'))localStorage.setItem('netcha_token',ancien);
-    if(ancien)sessionStorage.removeItem('netcha_token');
-  }catch(_){}
-
+  // Conserve la session après fermeture de l'application et migre les anciennes sessions.
+  const stockageNetcha=window.netchaStockageSession||(window.netchaStockageSession=(()=>{const cle='netcha_token';try{const ancien=sessionStorage.getItem(cle);if(ancien&&!localStorage.getItem(cle))localStorage.setItem(cle,ancien);sessionStorage.removeItem(cle);return {get:()=>localStorage.getItem(cle),set:v=>localStorage.setItem(cle,v),remove:()=>localStorage.removeItem(cle)}}catch(e){return {get:()=>sessionStorage.getItem(cle),set:v=>sessionStorage.setItem(cle,v),remove:()=>sessionStorage.removeItem(cle)}}})());
   const topActions=document.querySelector('.top-actions');
   if(!topActions||document.getElementById('netchaAuthTrigger'))return;
 
@@ -61,7 +35,7 @@
 
   const trigger=document.createElement('button');
   trigger.type='button';trigger.id='netchaAuthTrigger';trigger.className='iconbtn auth-trigger';
-  const actualiserLibelleCompte=()=>{const connecte=!!lireJetonPersistantNetcha();trigger.textContent='Compte';trigger.setAttribute('aria-label',connecte?'Ouvrir mon compte':'Créer un compte ou se connecter')};actualiserLibelleCompte();
+  const actualiserLibelleCompte=()=>{const connecte=!!stockageNetcha.get();trigger.textContent='Compte';trigger.setAttribute('aria-label',connecte?'Ouvrir mon compte':'Créer un compte ou se connecter')};actualiserLibelleCompte();
   topActions.appendChild(trigger);
 
   const modal=document.createElement('div');
@@ -130,10 +104,12 @@
     setTimeout(()=>{(which==='signup'?signupForm:loginForm).querySelector('input')?.focus()},80);
   }
   function closeAuth(){
+    // Sans session, l’écran d’accès reste obligatoire : seule une connexion/inscription valide le ferme.
+    if(!stockageNetcha.get())return;
     modal.classList.remove('is-open');modal.setAttribute('aria-hidden','true');
     document.body.style.overflow='';lastFocus?.focus?.();
   }
-  trigger.addEventListener('click',()=>{if(lireJetonPersistantNetcha()){if(typeof window.go==='function')window.go('profile')}else openAuth('signup')});
+  trigger.addEventListener('click',()=>{if(stockageNetcha.get()){if(typeof window.go==='function')window.go('profile')}else openAuth('signup')});
   window.addEventListener('netcha:auth',actualiserLibelleCompte);
   signupTab.addEventListener('click',()=>switchTab('signup'));
   loginTab.addEventListener('click',()=>switchTab('login'));
@@ -144,7 +120,7 @@
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal.classList.contains('is-open'))closeAuth()});
 
   async function afficherProfilNetcha(){
-    const token=lireJetonPersistantNetcha();if(!token)return;
+    const token=stockageNetcha.get();if(!token)return;
     const r=await fetch('/api/profile',{headers:{Authorization:'Bearer '+token}});
     const d=await r.json();if(!r.ok)throw new Error(d.erreur||'Profil indisponible');
     const profil=d.profil||{},nomAffiche=profil.nom_affiche||profil.identifiant||'Utilisateur',identifiant=profil.identifiant||'';
@@ -160,7 +136,7 @@
 
 
   async function verifierCompletionCompteNetcha(){
-    const token=lireJetonPersistantNetcha();if(!token)return;
+    const token=stockageNetcha.get();if(!token)return;
     try{
       const r=await fetch('/api/account/identity',{headers:{Authorization:'Bearer '+token}});
       const d=await r.json();if(!r.ok)throw new Error(d.erreur||'Informations de compte indisponibles');
@@ -177,7 +153,7 @@
           e.preventDefault();const form=e.currentTarget,button=modal.querySelector('#netchaIdentitySubmit'),msg=modal.querySelector('#netchaIdentityMessage');
           if(!form.reportValidity())return;button.disabled=true;msg.textContent='Enregistrement…';
           try{
-            const response=await fetch('/api/account/identity',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+lireJetonPersistantNetcha()},body:JSON.stringify({email:form.elements.email.value,telephone:form.elements.telephone.value,date_naissance:form.elements.date_naissance.value,genre:form.elements.genre.value})});
+            const response=await fetch('/api/account/identity',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+stockageNetcha.get()},body:JSON.stringify({email:form.elements.email.value,telephone:form.elements.telephone.value,date_naissance:form.elements.date_naissance.value,genre:form.elements.genre.value})});
             const result=await response.json();if(!response.ok)throw new Error(result.erreur||'Impossible d’enregistrer les coordonnées.');
             modal.remove();window.dispatchEvent(new Event('netcha:auth'));await afficherProfilNetcha();
           }catch(error){msg.textContent=error.message||'Erreur de connexion.';msg.style.color='#ffb6c1'}
@@ -246,7 +222,7 @@
           document.getElementById('netchaLoginUsername').value=identifiant;
           signupForm.reset();switchTab('login');
         }else{
-          enregistrerJetonPersistantNetcha(d.token);
+          stockageNetcha.set(d.token);
           message.textContent=type==='inscription'?'Compte créé. Bienvenue sur Netcha !':'Connexion réussie. Bienvenue sur Netcha !';
           signupForm.reset();
           window.dispatchEvent(new Event('netcha:auth'));
@@ -303,24 +279,7 @@
   const identityBirth=document.getElementById('netchaIdentityBirth');if(identityBirth)installerRaccourciAnneeNaissance(identityBirth,document.getElementById('netchaIdentityBirthYear'));
   envoyer(signupForm,'register','inscription');
   envoyer(loginForm,'login','connexion');
-  if(lireJetonPersistantNetcha())afficherProfilNetcha().then(verifierCompletionCompteNetcha).catch(()=>{effacerJetonPersistantNetcha();window.dispatchEvent(new Event('netcha:auth'))});
+  if(stockageNetcha.get())afficherProfilNetcha().then(verifierCompletionCompteNetcha).catch(()=>{stockageNetcha.remove();window.dispatchEvent(new Event('netcha:auth'));openAuth('login')});
   if(new URLSearchParams(window.location.search).has('reset'))openAuth('reset');
-})();
-/* Netcha : écran d'accès obligatoire avant la découverte de l'application. */
-(function(){
-  const style=document.createElement('style');
-  style.textContent='#netchaWelcomeGate{position:fixed;inset:0;z-index:105;background:radial-gradient(ellipse at 50% 25%,#242044,#10111b 52%,#090c14);color:#f7f7fc;display:none;flex-direction:column;align-items:center;justify-content:center;padding:28px 24px;font-family:Inter,system-ui,sans-serif}#netchaWelcomeGate.visible{display:flex}#netchaWelcomeGate h1{font-size:38px;text-align:center;margin:0 0 10px}#netchaWelcomeGate p{color:#b9b8ce;text-align:center;font-size:14px;line-height:1.6;margin:0 0 28px}#netchaWelcomeGate button{display:block;width:min(420px,100%);min-height:52px;margin:10px auto;border-radius:15px;font-size:14px;font-weight:850}#netchaWelcomeSignup{border:0;background:linear-gradient(110deg,#8b5cf6,#ec4899);color:white}#netchaWelcomeLogin{border:1px solid #55516f;background:#191827;color:#f7f7fc}';
-  document.head.appendChild(style);
-  const gate=document.createElement('div');
-  gate.id='netchaWelcomeGate';
-  const brand=document.createElement('h1');brand.textContent='Netcha';
-  const intro=document.createElement('p');intro.textContent='Crée ton compte ou connecte-toi pour découvrir les fonctionnalités de Netcha.';
-  const signup=document.createElement('button');signup.id='netchaWelcomeSignup';signup.type='button';signup.textContent='Créer un compte';
-  const login=document.createElement('button');login.id='netchaWelcomeLogin';login.type='button';login.textContent='Se connecter';
-  gate.append(brand,intro,signup,login);document.body.appendChild(gate);
-  const refresh=()=>{const locked=!lireJetonPersistantNetcha();gate.classList.toggle('visible',locked);gate.setAttribute('aria-hidden',String(!locked));};
-  signup.addEventListener('click',()=>document.getElementById('netchaAuthTrigger')?.click());
-  login.addEventListener('click',()=>{document.getElementById('netchaAuthTrigger')?.click();document.getElementById('netchaLoginTab')?.click();});
-  window.addEventListener('netcha:auth',refresh);
-  refresh();
+  else if(!stockageNetcha.get())openAuth('signup');
 })();
