@@ -293,3 +293,47 @@
   if(new URLSearchParams(window.location.search).has('reset'))openAuth('reset');
   else if(!stockageNetcha.get())openAuth('signup');
 })();
+
+/* Découverte mondiale des cercles : catégories synchronisées avec le backend. */
+(function netchaInstallerCategoriesMondiales(){
+  const categories = [
+    "Sport","Football","Basketball","Autres sports","Musique","Cinéma","Séries",
+    "Jeux vidéo","Technologie","Intelligence artificielle","Science","Études",
+    "Éducation","Business","Entrepreneuriat","Finance","Mode","Beauté","Cuisine",
+    "Voyage","Culture","Art","Photographie","Lecture","Actualités","Divertissement",
+    "Automobile","Santé et bien-être","Environnement","Famille","Communautés locales","Autres"
+  ];
+  function installer(){
+    const zone=document.querySelector(".netcha-circle-categories");
+    if(zone && zone.dataset.worldwideReady!=="1"){
+      zone.dataset.worldwideReady="1";
+      zone.replaceChildren();
+      const ajouter=(libelle,emoji,cat)=>{
+        const b=document.createElement("button");
+        b.type="button";b.textContent=emoji+" "+libelle;
+        if(cat==="Pour toi")b.classList.add("active");
+        b.addEventListener("click",()=>{
+          zone.querySelectorAll("button").forEach(x=>x.classList.toggle("active",x===b));
+          if(typeof window.filtrerCategorieCerclesNetcha==="function")window.filtrerCategorieCerclesNetcha(cat,b);
+        });
+        zone.appendChild(b);
+      };
+      ajouter("Pour toi","★","Pour toi");
+      const emojis={"Sport":"◉","Football":"⚽","Basketball":"🏀","Autres sports":"🏅","Musique":"♫","Cinéma":"🎬","Séries":"📺","Jeux vidéo":"🎮","Technologie":"⌘","Intelligence artificielle":"✧","Science":"🔬","Études":"⌂","Éducation":"📚","Business":"▣","Entrepreneuriat":"🚀","Finance":"💹","Mode":"◇","Beauté":"✨","Cuisine":"🍲","Voyage":"✈️","Culture":"🌍","Art":"🎨","Photographie":"📷","Lecture":"📖","Actualités":"📰","Divertissement":"✦","Automobile":"🚗","Santé et bien-être":"♥","Environnement":"🌱","Famille":"♧","Communautés locales":"⌖","Autres":"＋"};
+      categories.forEach(cat=>ajouter(cat,emojis[cat]||"•",cat));
+    }
+    const dialogue=window.dialogueNetcha;
+    if(typeof dialogue==="function"&&!dialogue.__netchaWorldwide){
+      const wrapped=function(options){
+        if(options&&options.title==="Créer un cercle"&&Array.isArray(options.fields)){
+          options={...options,fields:options.fields.map(field=>field.name==="categorie"?{...field,options:categories.map(x=>({value:x,label:x}))}:field)};
+        }
+        return dialogue.call(this,options);
+      };
+      wrapped.__netchaWorldwide=true;
+      window.dialogueNetcha=wrapped;
+    }
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",installer,{once:true});
+  else installer();
+})();
