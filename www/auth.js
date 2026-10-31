@@ -228,6 +228,12 @@
           window.dispatchEvent(new Event('netcha:auth'));
           try{await afficherProfilNetcha()}catch(err){console.warn('Profil Netcha indisponible',err)}
           closeAuth();
+          // Réactive les écrans et leurs chargements sans recharger le WebView.
+          // Le rechargement complet laissait l'écran Accueil actif sans relancer
+          // ses chargements (stories et fil), donnant l'impression que l'app était bloquée.
+          if(typeof window.go==='function') window.go('feed');
+          try{if(typeof window.netchaModules==='function') await window.netchaModules()}catch(err){console.warn('Modules Netcha indisponibles',err)}
+          try{if(typeof window.netchaAppliquerLite==='function') await window.netchaAppliquerLite()}catch(err){console.warn('Réglages Netcha indisponibles',err)}
           await verifierCompletionCompteNetcha();
         }
       }catch(err){
