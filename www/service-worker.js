@@ -26,13 +26,19 @@ self.addEventListener('activate', event => {
 function actualiserCache(cache, request, alias) {
   return fetch(request).then(response => {
     if (response && response.ok) {
-      const copie = response.clone();
-      const ecritures = [cache.put(request, copie)];
+      const ecritures = [cache.put(request, response.clone())];
       (alias || []).forEach(path => ecritures.push(cache.put(path, response.clone())));
       return Promise.all(ecritures).then(() => response);
     }
     return response;
   });
+}
+
+function pageHorsLigne() {
+  return new Response(
+    '<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Netcha hors ligne</title><body style="font-family:system-ui;background:#0b1018;color:#f4f8ff;padding:2rem"><h1>Netcha</h1><p>Connexion indisponible. Réessaie dès que ton réseau revient.</p></body></html>',
+    { headers: { 'Content-Type': 'text/html; charset=utf-8' }, status: 503 }
+  );
 }
 
 self.addEventListener('fetch', event => {
@@ -41,39 +47,30 @@ self.addEventListener('fetch', event => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-
-  // Jamais de cache pour les données utilisateur ou les endpoints dynamiques.
   if (url.pathname.startsWith('/api/') || url.pathname === '/health') return;
 
   if (request.mode === 'navigate') {
-    event.respondWith((async () => {
-      const cache = await caches.open(CACHE_NAME);
-      const cached = await cache.match('/') || await cache.match('/index.html');
-      const miseAJour = actualiserCache(cache, request, ['/','/index.html']).catch(() => null);
-      if (cached) {
-        event.waitUntil(miseAJour.then(() => undefined));
-        return cached;
-      }
-      const frais = await miseAJour;
-      return frais || new Response(
-        '<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Netcha hors ligne</title><body style="font-family:system-ui;background:#0b1018;color:#f4f8ff;padding:2rem"><h1>Netcha</h1><p>Connexion indisponible. Réessaie dès que ton réseau revient.</p></body></html>',
-        { headers: { 'Content-Type': 'text/html; charset=utf-8' }, status: 503 }
-      );
-    })());
+    const cachePromise = caches.open(CACHE_NAME);
+    const cachedPromise = cachePromise.then(async cache =>
+      await cache.match('/') || await cache.match('/index.html')
+    );
+    const updatePromise = cachePromise.then(cache =>
+      actualiserCache(cache, request, ['/','/index.html'])
+    ).catch(() => null);
+    event.waitUntil(updatePromise.then(() => undefined));
+    event.respondWith(cachedPromise.then(cached =>
+      cached || updatePromise.then(response => response || pageHorsLigne())
+    ));
     return;
   }
 
   if (APP_SHELL.includes(url.pathname)) {
-    event.respondWith((async () => {
-      const cache = await caches.open(CACHE_NAME);
-      const cached = await cache.match(request);
-      const miseAJour = actualiserCache(cache, request).catch(() => null);
-      if (cached) {
-        event.waitUntil(miseAJour.then(() => undefined));
-        return cached;
-      }
-      const frais = await miseAJour;
-      return frais || Response.error();
-    })());
+    const cachePromise = caches.open(CACHE_NAME);
+    const cachedPromise = cachePromise.then(cache => cache.match(request));
+    const updatePromise = cachePromise.then(cache => actualiserCache(cache, request)).catch(() => null);
+    event.waitUntil(updatePromise.then(() => undefined));
+    event.respondWith(cachedPromise.then(cached =>
+      cached || updatePromise.then(response => response || Response.error())
+    ));
   }
 });
