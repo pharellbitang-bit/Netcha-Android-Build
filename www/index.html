@@ -814,15 +814,25 @@ body:has(#circles.active) .bottom,body:has(#circleDetail.active) .bottom{display
 @media(prefers-reduced-motion:reduce){.netcha-flash-feed{scroll-behavior:auto}}
 </style>
 <script>
-/* Netcha web installable : les écrans sont servis par GitHub Pages, les données restent sur l'API Railway. */
+/* Netcha Android/PWA : toutes les routes API et les médias doivent atteindre le backend Railway,
+   jamais le serveur local capacitor://localhost qui renvoie index.html à la place du JSON. */
 const NETCHA_API_ORIGIN = "https://gentle-tranquility-production-db0a.up.railway.app";
 (function(){
   const originalFetch = window.fetch.bind(window);
+  const apiOrigin = new URL(NETCHA_API_ORIGIN).origin;
+  window.netchaApiUrl = function(value){
+    const raw = value instanceof Request ? value.url : (value instanceof URL ? value.href : String(value || ''));
+    const resolved = new URL(raw, window.location.href);
+    if (resolved.pathname === '/api' || resolved.pathname.startsWith('/api/')) {
+      return apiOrigin + resolved.pathname + resolved.search + resolved.hash;
+    }
+    return raw;
+  };
   window.fetch = function(input, init){
-    let raw = typeof input === 'string' ? input : (input instanceof URL ? input.href : (input && input.url));
-    if (typeof raw === 'string' && raw.startsWith('/api/')) {
-      const target = NETCHA_API_ORIGIN + raw;
-      input = (typeof Request !== 'undefined' && input instanceof Request) ? new Request(target, input) : target;
+    const target = window.netchaApiUrl(input);
+    const original = input instanceof Request ? input.url : (input instanceof URL ? input.href : String(input || ''));
+    if (target !== original) {
+      input = input instanceof Request ? new Request(target, input) : target;
     }
     return originalFetch(input, init);
   };
