@@ -1784,7 +1784,7 @@ async function creerGroupeDepuisDiscussionsNetcha(){
   activeConversationId=d.id;
   const title=document.getElementById('conversationTitle');if(title)title.textContent=nom;
   const sub=document.getElementById('conversationSubtitleNetcha');if(sub)sub.textContent='Groupe Netcha';
-  const avatar=document.getElementById('conversationAvatarNetcha');if(avatar){avatar.textContent='';avatar.style.backgroundImage='url("'+String(d.photo_url||'')+'")';avatar.style.backgroundSize='cover';avatar.style.backgroundPosition='center'}
+  const avatar=document.getElementById('conversationAvatarNetcha');if(avatar){avatar.textContent='';avatar.style.backgroundImage='url("'+mediaUrlNetcha(d.photo_url||'')+'")';avatar.style.backgroundSize='cover';avatar.style.backgroundPosition='center'}
   toast('Groupe créé. Tu peux envoyer ton premier message.');
   await chargerMessagesUI();await chargerConversationsUI();
  }catch(e){toast(e.message||'Impossible de créer le groupe.')}
@@ -1817,7 +1817,7 @@ function afficherRaccourcisGroupesNetcha(){
   row.setAttribute('aria-label','Groupe '+nom);
   row.style.cssText='width:100%;display:flex;align-items:center;gap:12px;text-align:left;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:12px 8px;background:transparent;color:var(--text);min-height:76px';
   const avatar=document.createElement('img');
-  avatar.src=g.avatar_url||avatarFictifGroupeNetcha(nom);avatar.alt='Photo de groupe '+nom;
+  avatar.src=mediaUrlNetcha(g.avatar_url)||avatarFictifGroupeNetcha(nom);avatar.alt='Photo de groupe '+nom;
   avatar.style.cssText='width:50px;height:50px;display:block;object-fit:cover;border-radius:50%;flex:0 0 50px;background:var(--surface-soft)';
   const details=document.createElement('span');
   details.style.cssText='display:block;flex:1;min-width:0';
