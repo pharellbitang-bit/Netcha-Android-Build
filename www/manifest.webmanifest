@@ -1,22 +1,19 @@
 {
-  "id": "/",
+  "id": "./",
   "name": "Netcha — Le monde en lien",
   "short_name": "Netcha",
   "description": "Retrouvez vos amis, échangez et découvrez avec Netcha.",
   "lang": "fr",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "display_override": [
-    "standalone",
-    "minimal-ui"
-  ],
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "any",
   "background_color": "#0b1018",
   "theme_color": "#116b83",
   "icons": [
     {
-      "src": "/icons/netcha.svg",
+      "src": "icons/netcha.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
