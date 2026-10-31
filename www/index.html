@@ -773,6 +773,8 @@ header.top .top-actions>.netcha-account-button{flex-shrink:0!important}
 .netcha-circle-cover img{width:100%;height:100%;object-fit:cover;border-radius:50%}.netcha-circle-detail-photo{display:block;width:104px;height:104px;object-fit:cover;border-radius:50%;border:2px solid #62e6d4;margin:0 0 14px}.netcha-circle-suggest-card strong{font-size:16px}.netcha-circle-suggest-card span{color:#a9c0d9;font-size:13px}
 .netcha-circle-join{border-radius:25px;padding:12px 16px;font-weight:800;margin-top:4px}
 .netcha-circle-more{position:absolute;right:10px;top:10px;border:0;background:transparent;color:#dceaff;font-size:24px}
+#circleSuggestionsSentinelNetcha{width:100%;pointer-events:none}
+#circleSuggestionsMoreNetcha{font-weight:750}
 .netcha-circle-post,.netcha-circle-detail-card{position:relative;border:1px solid #235b82;border-radius:20px;background:linear-gradient(145deg,#101f32,#0b1726);padding:14px;margin:0 0 14px;overflow:hidden}
 .netcha-circle-post-head{display:flex;align-items:center;gap:10px}
 .netcha-circle-post-head>div:nth-child(2){display:flex;flex-direction:column;gap:3px;flex:1}
@@ -963,6 +965,7 @@ const NETCHA_API_ORIGIN = "https://gentle-tranquility-production-db0a.up.railway
  <div class="netcha-circle-categories"><button class="active" onclick="filtrerCategorieCerclesNetcha('Pour toi',this)">★ Pour toi</button><button onclick="filtrerCategorieCerclesNetcha('Sport',this)">◉ Sport</button><button onclick="filtrerCategorieCerclesNetcha('Musique',this)">♫ Musique</button><button onclick="filtrerCategorieCerclesNetcha('Études',this)">⌂ Études</button><button onclick="filtrerCategorieCerclesNetcha('Business',this)">▣ Business</button><button onclick="filtrerCategorieCerclesNetcha('Technologie',this)">⌘ Technologie</button><button onclick="filtrerCategorieCerclesNetcha('Divertissement',this)">✦ Divertissement</button><button onclick="filtrerCategorieCerclesNetcha('Mode',this)">◇ Mode</button><button onclick="filtrerCategorieCerclesNetcha('Jeux vidéo',this)">🎮 Jeux vidéo</button><button onclick="filtrerCategorieCerclesNetcha('Autres',this)">＋ Autres</button></div>
  <div class="netcha-circle-section-head"><h2>Suggestions de cercles</h2><button class="textbtn" onclick="chargerExplorationCerclesNetcha()">Actualiser ↻</button></div>
  <div id="circleSuggestionsNetcha" class="netcha-circle-suggestions"><p class="muted">Chargement des suggestions…</p></div>
+ <div id="circleSuggestionsSentinelNetcha" aria-hidden="true" style="height:1px"></div><button id="circleSuggestionsMoreNetcha" type="button" class="secondary" hidden onclick="netchaChargerSuiteCercles()" style="width:100%;margin:6px 0 12px">Voir plus de cercles</button>
  <div class="netcha-circle-section-head"><h2>Publications des cercles</h2><button class="textbtn" onclick="netchaCreerCercle()">＋ Créer</button></div>
  <div id="circleFeedNetcha"><p class="muted">Chargement des publications…</p></div>
 </section>
@@ -2944,34 +2947,69 @@ async function netchaInitialiserApresConnexion(){
 }
 window.netchaInitialiserApresConnexion=netchaInitialiserApresConnexion;
 
-window.netchaCercleActif=null;let netchaCerclesCache=[];
-async function chargerExplorationCerclesNetcha(){
- if(!jetonNetcha())return;
- const s=document.getElementById('circleSuggestionsNetcha'),f=document.getElementById('circleFeedNetcha');
- if(s)s.innerHTML='<p class="muted">Chargement des cercles…</p>';
- if(f)f.innerHTML='<p class="muted">Chargement des publications…</p>';
- try{
-  const d=await requeteNetcha('/api/cercles/explorer');netchaCerclesCache=d.suggestions||[];
-  if(s)s.innerHTML=netchaCerclesCache.map(x=>'<article class="netcha-circle-suggest-card" role="link" tabindex="0" data-circle-name="'+echapperNetcha((x.nom||'').toLowerCase())+'" data-circle-category="'+echapperNetcha(x.categorie||'Autres')+'" onclick="netchaOuvrirCercle('+x.id+')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();netchaOuvrirCercle('+x.id+')}" aria-label="Ouvrir le cercle '+echapperNetcha(x.nom)+'"><button class="netcha-circle-more" onclick="event.stopPropagation();netchaOuvrirCercle('+x.id+')" aria-label="Ouvrir le cercle">⋮</button><div class="netcha-circle-cover"><img src="'+echapperNetcha(mediaUrlNetcha(x.photo_url))+'" alt="Photo du cercle" loading="lazy"></div><strong>'+echapperNetcha(x.nom)+'</strong><span>'+echapperNetcha(x.categorie||'Autres')+' · ♟ '+x.membres+' membres</span><button class="netcha-circle-join" onclick="event.stopPropagation();netchaJoin('+x.id+')">Rejoindre</button></article>').join('')||'<p class="muted">Aucun cercle public disponible pour le moment. Les cercles privés restent visibles à leurs membres.</p>';appliquerFiltresCerclesNetcha();
-  if(f)f.innerHTML=(d.publications||[]).map(p=>'<article class="netcha-circle-post"><div class="netcha-circle-post-head"><div class="netcha-circle-post-avatar">'+echapperNetcha((p.cercle||'C').slice(0,1).toUpperCase())+'</div><div><strong>'+echapperNetcha(p.cercle)+'</strong><small>'+echapperNetcha(p.auteur)+' · '+dateNetcha(p.cree_le)+'</small></div>'+(String(p.auteur_id)===String(currentAccountIdNetcha)?'<button type="button" class="netcha-circle-more" aria-label="Options de ma publication" onclick="netchaSupprimerMedia(\'cercle\','+p.id+','+p.cercle_id+')">⋮</button>':'<button class="netcha-circle-more" onclick="netchaOuvrirCercle('+p.cercle_id+')">⋮</button>')+'</div>'+(p.texte?'<p class="netcha-circle-post-text">'+echapperNetcha(p.texte)+'</p>':'')+(p.media_url?(p.type_media==='video'?'<video controls playsinline preload="metadata" src="'+echapperNetcha(mediaUrlNetcha(p.media_url))+'"></video>':'<img loading="lazy" src="'+echapperNetcha(mediaUrlNetcha(p.media_url))+'" alt="Média publié dans le cercle">')+netchaBoutonTelechargerMedia(p.media_url,p.cercle_id,p.id):'')+'<div class="netcha-circle-post-actions"><button onclick="netchaOuvrirCercle('+p.cercle_id+')">Ouvrir le cercle · '+p.membres+' membres</button></div></article>').join('')||'<p class="muted">Les publications des cercles apparaîtront ici.</p>';
- }catch(e){if(s)s.innerHTML='<p class="muted">Impossible de charger les suggestions.</p>';if(f)f.innerHTML='<p class="muted">Impossible de charger les publications.</p>';toast(e.message||'Chargement des cercles impossible.')}
-}
-function filtrerCerclesNetcha(){appliquerFiltresCerclesNetcha()}
+window.netchaCercleActif=null;
+let netchaCerclesCache=[],netchaCerclesOffset=0,netchaCerclesHasMore=false,netchaCerclesLoading=false,netchaCerclesGeneration=0,netchaCerclesObserver=null,netchaRechercheCercleTimer=null;
 let netchaCategorieCercleActive='Pour toi';
+function netchaCarteSuggestionCercle(x,index){
+ const photo=mediaUrlNetcha(x.photo_url);
+ return '<article class="netcha-circle-suggest-card" role="link" tabindex="0" data-circle-name="'+echapperNetcha((x.nom||'').toLowerCase())+'" data-circle-category="'+echapperNetcha(x.categorie||'Autres')+'" onclick="netchaOuvrirCercle('+x.id+')" onkeydown="if(event.key===\\'Enter\\'||event.key===\\' \\'){event.preventDefault();netchaOuvrirCercle('+x.id+')}" aria-label="Ouvrir le cercle '+echapperNetcha(x.nom)+'"><div class="netcha-circle-cover"><img src="'+echapperNetcha(photo)+'" alt="Photo du cercle" loading="'+(index<6?'eager':'lazy')+'" decoding="async"></div><strong>'+echapperNetcha(x.nom)+'</strong><span>'+echapperNetcha(x.categorie||'Autres')+' · ♟ '+x.membres+' membres</span><button type="button" class="netcha-circle-join" onclick="event.stopPropagation();netchaJoin('+x.id+')">Rejoindre</button></article>';
+}
+function netchaPrechargerPhotosCercles(liste){
+ (liste||[]).slice(0,6).forEach(x=>{const url=mediaUrlNetcha(x.photo_url);if(url){const img=new Image();img.decoding='async';img.src=url;}});
+}
+function netchaConfigurerChargementCercles(){
+ const sentinelle=document.getElementById('circleSuggestionsSentinelNetcha'),secours=document.getElementById('circleSuggestionsMoreNetcha');
+ if(netchaCerclesObserver){netchaCerclesObserver.disconnect();netchaCerclesObserver=null;}
+ if(!netchaCerclesHasMore){if(secours)secours.hidden=true;return;}
+ if('IntersectionObserver' in window&&sentinelle){
+  if(secours)secours.hidden=true;
+  netchaCerclesObserver=new IntersectionObserver(entries=>{if(entries.some(x=>x.isIntersecting))netchaChargerSuiteCercles();},{root:null,rootMargin:'500px 0px',threshold:0});
+  netchaCerclesObserver.observe(sentinelle);
+ }else if(secours){secours.hidden=false;}
+}
+async function chargerExplorationCerclesNetcha(options={}){
+ if(!jetonNetcha())return;
+ const append=options.append===true;
+ if(append&&(netchaCerclesLoading||!netchaCerclesHasMore))return;
+ const generation=append?netchaCerclesGeneration:++netchaCerclesGeneration;
+ const s=document.getElementById('circleSuggestionsNetcha'),f=document.getElementById('circleFeedNetcha');
+ if(!append){netchaCerclesOffset=0;netchaCerclesHasMore=true;if(s)s.innerHTML='<p class="muted">Chargement des cercles…</p>';if(f)f.innerHTML='<p class="muted">Chargement des publications…</p>';}
+ netchaCerclesLoading=true;
+ try{
+  const recherche=(document.getElementById('circleSearchNetcha')?.value||'').trim();
+  const url='/api/cercles/explorer?categorie='+encodeURIComponent(netchaCategorieCercleActive)+'&limit=12&offset='+netchaCerclesOffset+'&q='+encodeURIComponent(recherche);
+  const d=await requeteNetcha(url);
+  if(generation!==netchaCerclesGeneration)return;
+  const page=d.suggestions||[];
+  netchaCerclesCache=append?netchaCerclesCache.concat(page):page;
+  netchaCerclesOffset=Number(d.next_offset??netchaCerclesCache.length);
+  netchaCerclesHasMore=d.has_more===true;
+  if(s){
+   if(!append)s.innerHTML='';
+   if(page.length)s.insertAdjacentHTML('beforeend',page.map((x,i)=>netchaCarteSuggestionCercle(x,append?i+netchaCerclesCache.length-page.length:i)).join(''));
+   if(!netchaCerclesCache.length)s.innerHTML='<p class="muted">Aucun cercle public ne correspond à cette recherche.</p>';
+  }
+  netchaPrechargerPhotosCercles(page);
+  if(!append&&f)f.innerHTML=(d.publications||[]).map(p=>'<article class="netcha-circle-post"><div class="netcha-circle-post-head"><div class="netcha-circle-post-avatar">'+echapperNetcha((p.cercle||'C').slice(0,1).toUpperCase())+'</div><div><strong>'+echapperNetcha(p.cercle)+'</strong><small>'+echapperNetcha(p.auteur)+' · '+dateNetcha(p.cree_le)+'</small></div>'+(String(p.auteur_id)===String(currentAccountIdNetcha)?'<button type="button" class="netcha-circle-more" aria-label="Options de ma publication" onclick="netchaSupprimerMedia(\\'cercle\\','+p.id+','+p.cercle_id+')">⋮</button>':'')+'</div>'+(p.texte?'<p class="netcha-circle-post-text">'+echapperNetcha(p.texte)+'</p>':'')+(p.media_url?(p.type_media==='video'?'<video controls playsinline preload="metadata" src="'+echapperNetcha(mediaUrlNetcha(p.media_url))+'"></video>':'<img loading="lazy" src="'+echapperNetcha(mediaUrlNetcha(p.media_url))+'" alt="Média publié dans le cercle">')+netchaBoutonTelechargerMedia(p.media_url,p.cercle_id,p.id):'')+'<div class="netcha-circle-post-actions"><button type="button" onclick="netchaOuvrirCercle('+p.cercle_id+')">Ouvrir le cercle · '+p.membres+' membres</button></div></article>').join('')||'<p class="muted">Les publications des cercles apparaîtront ici.</p>';
+  netchaConfigurerChargementCercles();
+ }catch(e){
+  if(generation===netchaCerclesGeneration){if(s&&!append)s.innerHTML='<p class="muted">Impossible de charger les suggestions.</p>';if(f&&!append)f.innerHTML='<p class="muted">Impossible de charger les publications.</p>';toast(e.message||'Chargement des cercles impossible.');}
+ }finally{if(generation===netchaCerclesGeneration)netchaCerclesLoading=false;}
+}
+function netchaChargerSuiteCercles(){return chargerExplorationCerclesNetcha({append:true})}
 function filtrerCategorieCerclesNetcha(cat,btn){
  netchaCategorieCercleActive=cat;
  document.querySelectorAll('.netcha-circle-categories button').forEach(x=>x.classList.toggle('active',x===btn));
- appliquerFiltresCerclesNetcha();
+ chargerExplorationCerclesNetcha();
 }
 function appliquerFiltresCerclesNetcha(){
  const q=(document.getElementById('circleSearchNetcha')?.value||'').trim().toLowerCase();
- document.querySelectorAll('.netcha-circle-suggest-card').forEach(x=>{
-  const nom=(x.dataset.circleName||'').includes(q);
-  const categorie=netchaCategorieCercleActive==='Pour toi'||x.dataset.circleCategory===netchaCategorieCercleActive;
-  x.hidden=!(nom&&categorie);
- });
+ document.querySelectorAll('.netcha-circle-suggest-card').forEach(x=>{x.hidden=!!q&&!((x.dataset.circleName||'').includes(q));});
 }
-function filtrerCerclesNetcha(){appliquerFiltresCerclesNetcha()}
+function filtrerCerclesNetcha(){
+ clearTimeout(netchaRechercheCercleTimer);
+ netchaRechercheCercleTimer=setTimeout(()=>chargerExplorationCerclesNetcha(),250);
+}
 function netchaBoutonTelechargerMedia(url, cercleId, publicationId){
  const media=mediaUrlNetcha(url);if(!media)return '';
  const ext=(media.match(/\.(jpg|jpeg|png|webp|gif|mp4|webm|mov)(?:[?#]|$)/i)||[])[1]||'media';
@@ -2989,7 +3027,7 @@ async function netchaActualiserDetailCercle(){
   const [d,c,s]=await Promise.all([requeteNetcha('/api/cercles/'+id+'/publications'),requeteNetcha('/api/cercles'),requeteNetcha('/api/cercles/'+id+'/partages')]);
   const cercle=(c.cercles||[]).find(x=>String(x.id)===String(id));
   document.getElementById('circleDetailTitleNetcha').textContent=cercle?.nom||'Cercle';
-  if(info)info.innerHTML='<div class="netcha-circle-detail-card">'+(cercle?.photo_url?'<img class="netcha-circle-detail-photo" src="'+echapperNetcha(mediaUrlNetcha(cercle.photo_url))+'" alt="Photo du cercle">':'')+'<h2>'+echapperNetcha(cercle?.nom||'Cercle')+'</h2><p>'+echapperNetcha(cercle?.description||'Communauté Netcha')+'</p><span>'+echapperNetcha(cercle?.categorie||'Autres')+' · ♟ '+(cercle?.membres||0)+' membres · '+(cercle?.visibilite==='prive'?'Privé':'Public')+'</span><div class="netcha-circle-detail-actions">'+(cercle?.membre?'<button class="netcha-circle-join" onclick="netchaPublierDansCercle('+id+')">＋ Publier</button>':'<button class="netcha-circle-join" onclick="netchaJoin('+id+')">Rejoindre le cercle</button>')+(String(cercle?.createur_id)===String(currentAccountIdNetcha)?'<button class="textbtn" onclick="netchaGererDemandesCercle('+id+')">Demandes</button>':'')+'</div></div>';
+  if(info)info.innerHTML='<div class="netcha-circle-detail-card">'+(cercle?.photo_url?'<img class="netcha-circle-detail-photo" src="'+echapperNetcha(mediaUrlNetcha(cercle.photo_url))+'" alt="Photo du cercle">':'')+'<h2>'+echapperNetcha(cercle?.nom||'Cercle')+'</h2><p>'+echapperNetcha(cercle?.description||'Communauté Netcha')+'</p><span>'+echapperNetcha(cercle?.categorie||'Autres')+' · ♟ '+(cercle?.membres||0)+' membres · '+(cercle?.visibilite==='prive'?'Privé':'Public')+'</span><div class="netcha-circle-detail-actions">'+(cercle?.membre?'<button type="button" class="netcha-circle-join" onclick="document.getElementById(\'circlePostTextNetcha\')?.focus()">＋ Publier</button>':'<button type="button" class="netcha-circle-join" onclick="netchaJoin('+id+')">Rejoindre le cercle</button>')+(String(cercle?.createur_id)===String(currentAccountIdNetcha)?'<button class="textbtn" onclick="netchaGererDemandesCercle('+id+')">Demandes</button>':'')+'</div></div>';
   const publications=(d.publications||[]).map(p=>({date:p.cree_le,html:'<article class="netcha-circle-post"><div class="netcha-circle-post-head"><div class="netcha-circle-post-avatar">'+echapperNetcha((p.auteur||'M').slice(0,1).toUpperCase())+'</div><div><strong>'+echapperNetcha(p.auteur)+'</strong><small>'+dateNetcha(p.cree_le)+'</small></div>'+(String(p.auteur_id)===String(currentAccountIdNetcha)?'<button type="button" class="netcha-circle-more" aria-label="Options de ma publication" onclick="netchaSupprimerMedia(\'cercle\','+p.id+','+id+')">⋮</button>':'')+'</div>'+(p.texte?'<p class="netcha-circle-post-text">'+echapperNetcha(p.texte)+'</p>':'')+(p.media_url?(p.type_media==='video'?'<video controls playsinline src="'+echapperNetcha(mediaUrlNetcha(p.media_url))+'"></video>':'<img loading="lazy" src="'+echapperNetcha(mediaUrlNetcha(p.media_url))+'" alt="Publication du cercle">')+netchaBoutonTelechargerMedia(p.media_url,id,p.id):'')+'</article>'}));
   const partages=(s.partages||[]).map(p=>({date:p.cree_le,html:'<article class="netcha-circle-post netcha-circle-shared-post"><div class="netcha-circle-post-head"><div class="netcha-circle-post-avatar">↗</div><div><strong>'+echapperNetcha(p.auteur||'Membre Netcha')+'</strong><small> a partagé un '+(p.type_contenu==='flash'?'Flash':'événement')+' · '+dateNetcha(p.cree_le)+'</small></div></div><p class="netcha-circle-post-text">'+echapperNetcha(p.titre||(p.type_contenu==='flash'?'Flash partagé':'Événement partagé'))+'</p>'+(p.media_url?'<video controls playsinline preload="metadata"'+(p.miniature_url?' poster="'+echapperNetcha(mediaUrlNetcha(p.miniature_url))+'"':'')+' src="'+echapperNetcha(mediaUrlNetcha(p.media_url))+'"></video>'+netchaBoutonTelechargerMedia(p.media_url,id,'partage-'+p.id):'')+(p.type_contenu==='evenement'?'<p class="muted">'+echapperNetcha(p.lieu||'')+(p.debut_le?' · '+dateNetcha(p.debut_le):'')+'</p>':'')+'</article>'}));
   const fil=[...publications,...partages].sort((a,b)=>Date.parse(b.date||0)-Date.parse(a.date||0));
