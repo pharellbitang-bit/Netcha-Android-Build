@@ -1026,6 +1026,7 @@ function imageSecoursActualiteNetcha(categorie){
  return images[cle]||'https://images.unsplash.com/photo-1490730141103-6cac27aaab94?w=1200&auto=format&fit=crop&q=85';
 }
 let actualitesOffsetNetcha=0,actualitesTotalNetcha=0,actualitesChargementNetcha=false,actualitesHasMoreNetcha=false,actualitesGenerationNetcha=0;
+let actualitesReconnexionEnAttenteNetcha=false,actualitesRelanceApresChargementNetcha=false,actualitesDerniereSyncNetcha=0,actualitesDerniereTentativeNetcha=0;
 function carteActualiteNetcha(a){
  const titre=echapperNetcha(a.titre||'Article d’actualité'),source=echapperNetcha(a.source||'Source d’information'),categorie=echapperNetcha(a.categorie||'Actualités'),resume=echapperNetcha(a.resume||''),date=a.date_publication?echapperNetcha(dateNetcha(a.date_publication)):'';
  const secours=imageSecoursActualiteNetcha(a.categorie),imageSource=mediaUrlNetcha(a.image_url)||secours;
@@ -1081,13 +1082,16 @@ function filtrerActualitesNetcha(categorie,bouton){
  }else if(note)note.hidden=true;
 }
 async function chargerFil(reinitialiser=false,actualiser=false){
- const zone=document.getElementById('postFeed');if(!zone||actualitesChargementNetcha)return;
- if(reinitialiser){actualitesOffsetNetcha=0;actualitesTotalNetcha=0;actualitesHasMoreNetcha=false;actualitesGenerationNetcha++;zone.innerHTML='<div class="news-status">Chargement des articles d’actualité…</div>';document.getElementById('newsMoreWrap')?.replaceChildren()}
+ const zone=document.getElementById('postFeed');if(!zone)return;
+ if(!navigator.onLine){actualitesReconnexionEnAttenteNetcha=true;if(!zone.querySelector('.news-card')&&reinitialiser)zone.innerHTML='<div class="news-status">Connexion Internet indisponible. Les actualités se mettront à jour automatiquement dès le retour du réseau.</div>';return}
+ if(actualitesChargementNetcha){if(reinitialiser&&actualiser)actualitesRelanceApresChargementNetcha=true;return}
+ if(reinitialiser){actualitesOffsetNetcha=0;actualitesTotalNetcha=0;actualitesHasMoreNetcha=false;actualitesGenerationNetcha++;if(!zone.querySelector('.news-card'))zone.innerHTML='<div class="news-status">Chargement des articles d’actualité…</div>';document.getElementById('newsMoreWrap')?.replaceChildren()}
  else if(!actualitesHasMoreNetcha&&actualitesOffsetNetcha>0)return;
  const generation=actualitesGenerationNetcha,offset=reinitialiser?0:actualitesOffsetNetcha;actualitesChargementNetcha=true;
  try{
   const params=new URLSearchParams({limit:'20',offset:String(offset)});if(actualiser)params.set('refresh','1');
   const d=await requeteNetcha('/api/news?'+params.toString());if(generation!==actualitesGenerationNetcha)return;
+  actualitesReconnexionEnAttenteNetcha=false;actualitesDerniereSyncNetcha=Date.now();
   const articles=Array.isArray(d.articles)?d.articles:[],meta=document.getElementById('newsFeedMeta');
   if(reinitialiser)zone.replaceChildren();
   if(articles.length)zone.insertAdjacentHTML('beforeend',articles.map(carteActualiteNetcha).join(''));
@@ -1103,8 +1107,25 @@ async function chargerFil(reinitialiser=false,actualiser=false){
   const more=document.getElementById('newsMoreWrap');if(more){more.replaceChildren();if(actualitesHasMoreNetcha){const sentinel=document.createElement('div');sentinel.className='news-status news-auto-more-netcha';sentinel.setAttribute('role','status');sentinel.textContent='Fais défiler pour découvrir la suite…';sentinel.dataset.autoMore='true';more.appendChild(sentinel)}else if(articles.length){const b=document.createElement('button');b.className='secondary news-more';b.textContent='Actualiser les actualités';b.onclick=()=>chargerFil(true,true);more.appendChild(b)}}
   if(d.perime&&articles.length){const note=document.createElement('p');note.className='news-status';note.textContent='Certaines sources ne répondent pas actuellement ; les derniers articles disponibles sont conservés.';zone.prepend(note)}
  }catch(e){
-  if(generation===actualitesGenerationNetcha){if(reinitialiser)zone.innerHTML='<div class="news-status"><button class="secondary" onclick="chargerFil(true,true)">Réessayer</button></div>';else toast('Impossible de charger davantage d’articles.')}
- }finally{if(generation===actualitesGenerationNetcha){actualitesChargementNetcha=false;activerChargementContinuActualitesNetcha()}}
+  actualitesReconnexionEnAttenteNetcha=true;
+  if(generation===actualitesGenerationNetcha){if(reinitialiser&&!zone.querySelector('.news-card'))zone.innerHTML='<div class="news-status">Connexion aux actualités impossible. Netcha réessaiera automatiquement dès que le réseau sera rétabli.</div>';else if(!reinitialiser)toast('Impossible de charger davantage d’articles.')}
+ }finally{if(generation===actualitesGenerationNetcha){actualitesChargementNetcha=false;activerChargementContinuActualitesNetcha();if(actualitesRelanceApresChargementNetcha&&navigator.onLine){actualitesRelanceApresChargementNetcha=false;actualitesReconnexionEnAttenteNetcha=false;Promise.resolve().then(()=>chargerFil(true,true))}}}
+}
+function actualitesReprendreApresReseauNetcha(force=false){
+ if(!navigator.onLine){actualitesReconnexionEnAttenteNetcha=true;return}
+ if(!jetonNetcha())return;
+ const maintenant=Date.now();if(!force&&!actualitesReconnexionEnAttenteNetcha&&maintenant-actualitesDerniereSyncNetcha<120000)return;
+ if(maintenant-actualitesDerniereTentativeNetcha<5000)return;
+ actualitesDerniereTentativeNetcha=maintenant;
+ if(actualitesChargementNetcha){actualitesReconnexionEnAttenteNetcha=true;actualitesRelanceApresChargementNetcha=true;return}
+ actualitesReconnexionEnAttenteNetcha=false;chargerFil(true,true);
+}
+if(!window.netchaActualitesReseauEcoute){
+ window.netchaActualitesReseauEcoute=true;
+ window.addEventListener('offline',()=>{actualitesReconnexionEnAttenteNetcha=true});
+ window.addEventListener('online',()=>actualitesReprendreApresReseauNetcha(true));
+ window.addEventListener('pageshow',()=>actualitesReprendreApresReseauNetcha(false));
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)actualitesReprendreApresReseauNetcha(false)});
 }
 // Chargement continu : la page suivante arrive automatiquement en approchant du bas du fil.
 let actualitesAutoObserverNetcha=null;
