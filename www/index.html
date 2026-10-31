@@ -812,28 +812,13 @@ body:has(#circles.active) .top,body:has(#circleDetail.active) .top{display:none}
 body:has(#circles.active) .bottom,body:has(#circleDetail.active) .bottom{display:none!important}
 #circles.active,#circleDetail.active{min-height:100dvh;padding-bottom:24px!important}
 @media(prefers-reduced-motion:reduce){.netcha-flash-feed{scroll-behavior:auto}}
-</style>
+.netcha-chat-unread{background:linear-gradient(90deg,rgba(111,103,255,.13),rgba(68,215,204,.07));border-radius:12px;padding-left:10px!important;padding-right:10px!important}.netcha-unread-count{display:inline-flex;align-items:center;justify-content:center;min-width:23px;height:23px;padding:0 6px;border-radius:999px;background:#e53955;color:#fff;font-size:12px;font-weight:850;box-shadow:0 0 0 2px var(--panel)}#notificationBellNetcha{position:relative}#notificationBellNetcha[data-unread-count]:not([data-unread-count="0"]):after{content:attr(data-unread-count);position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:99px;background:#e53955;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg,#0b1018)}</style>
 </head>
-<body data-netcha-launch-mode="social-only"><main class="app"><header class="top"><div class="brand"><div class="logo">n</div>netcha</div><div class="top-actions"><button class="iconbtn" aria-label="Rechercher des personnes" onclick="go('feed');setTimeout(()=>document.getElementById('homeMemberSearch')?.focus(),80)">⌕</button><button class="iconbtn" aria-label="Messages" onclick="go('messages')">✉</button><button class="iconbtn" id="notificationBellNetcha" aria-label="Notifications" onclick="ouvrirNotificationsNetcha()">♧</button><button class="netcha-account-button" type="button" onclick="go('profile')">Compte</button></div></header><script>/* Netcha Android : garder le code en ligne identique, en envoyant toutes les routes API vers le backend Netcha distant. */
+<body data-netcha-launch-mode="social-only"><main class="app"><header class="top"><div class="brand"><div class="logo">n</div>netcha</div><div class="top-actions"><button class="iconbtn" aria-label="Rechercher des personnes" onclick="go('feed');setTimeout(()=>document.getElementById('homeMemberSearch')?.focus(),80)">⌕</button><button class="iconbtn" aria-label="Messages" onclick="go('messages')">✉</button><button class="iconbtn" id="notificationBellNetcha" aria-label="Notifications" onclick="ouvrirNotificationsNetcha()">♧</button><button class="netcha-account-button" type="button" onclick="go('profile')">Compte</button></div></header><script>
+/* Netcha Android : routes API et médias partagés avec le backend en ligne. */
 const NETCHA_API_ORIGIN = "https://gentle-tranquility-production-db0a.up.railway.app";
-(function(){
- const originalFetch=window.fetch.bind(window);
- window.netchaApiUrl=function(value){
-  const raw=value instanceof Request?value.url:(value instanceof URL?value.href:String(value||''));
-  const resolved=new URL(raw,window.location.href);
-  if(resolved.pathname==='/api'||resolved.pathname.startsWith('/api/')){
-   return NETCHA_API_ORIGIN+resolved.pathname+resolved.search+resolved.hash;
-  }
-  return raw;
- };
- window.fetch=function(input,init){
-  const target=window.netchaApiUrl(input);
-  const original=input instanceof Request?input.url:(input instanceof URL?input.href:String(input||''));
-  if(target!==original)input=input instanceof Request?new Request(target,input):target;
-  return originalFetch(input,init);
- };
-})();
-
+(function(){const originalFetch=window.fetch.bind(window);window.netchaApiUrl=function(value){const raw=value instanceof Request?value.url:(value instanceof URL?value.href:String(value||''));const resolved=new URL(raw,window.location.href);if(resolved.pathname==='/api'||resolved.pathname.startsWith('/api/'))return NETCHA_API_ORIGIN+resolved.pathname+resolved.search+resolved.hash;return raw};window.fetch=function(input,init){const target=window.netchaApiUrl(input),original=input instanceof Request?input.url:(input instanceof URL?input.href:String(input||''));if(target!==original)input=input instanceof Request?new Request(target,input):target;return originalFetch(input,init)}})();
+</script><script>
 (function(){
  function nettoyerBoutonsCompte(){
   const header=document.querySelector('header.top');
@@ -1032,7 +1017,7 @@ function mediaUrlNetcha(url){
  if(/^https:\/\/[^/]+(?:\/|$)/i.test(valeur))return valeur;
  const compte=/^\/api\/media\/accounts\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(?:jpg|jpeg|png|webp|gif|mp4|webm|mov|ogg|mp3|pdf|txt)$/i;
  const ancien=/^\/api\/media\/public\/public\/[0-9a-f-]{36}\/[0-9a-f]{32}\.(?:jpg|jpeg|png|webp|gif)$/i;
- return compte.test(valeur)||ancien.test(valeur)?(window.netchaApiUrl?window.netchaApiUrl(valeur):valeur):'';
+ return compte.test(valeur)||ancien.test(valeur)?window.netchaApiUrl(valeur):'';
 }
 function imageSecoursActualiteNetcha(categorie){
  const images={stars:'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=1200&auto=format&fit=crop&q=85',musique:'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=1200&auto=format&fit=crop&q=85',business:'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=1200&auto=format&fit=crop&q=85',tech:'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&auto=format&fit=crop&q=85','cinéma':'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1200&auto=format&fit=crop&q=85',sport:'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=1200&auto=format&fit=crop&q=85',afrique:'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=1200&auto=format&fit=crop&q=85',cameroun:'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=1200&auto=format&fit=crop&q=85'};
@@ -1714,8 +1699,8 @@ function rendreAmisDiscussionsNetcha(z,amis){
  z.innerHTML=tries.map(m=>{
   const brut=nomAfficheContactNetcha(m)||m.nom_affiche||m.identifiant||'Ami Netcha',nom=echapperNetcha(brut),identifiant=String(m.identifiant||''),initial=echapperNetcha(Array.from(String(brut))[0].toUpperCase()),photo=m.avatar_url||m.photo_profil||m.photo_url||m.avatar||m.photo||'',photoOk=mediaUrlNetcha(photo);
   const avatar=photoOk?'<button type="button" class="netcha-friend-avatar-preview" aria-label="Agrandir la photo de profil de '+nom+'" data-profile-photo="'+echapperNetcha(photo)+'" data-profile-name="'+nom+'" onclick="event.stopPropagation();ouvrirApercuPhotoAmiNetcha(this)" style="width:48px;height:48px;padding:0;border:0;border-radius:50%;background:transparent;flex-shrink:0"><img src="'+echapperNetcha(photoOk)+'" data-initial="'+initial+'" alt="Photo de profil de '+nom+'" loading="eager" decoding="sync" fetchpriority="high" onerror="netchaPhotoAvatarErreur(this)" style="width:48px;height:48px;object-fit:cover;border-radius:50%;display:block"></button>':'<span class="friend-suggestion-avatar" style="width:48px;height:48px;flex-shrink:0">'+initial+'</span>';
-  const recherche=echapperNetcha((String(brut)+' '+identifiant).toLocaleLowerCase()),conversation=conversationAmi(m),apercu=conversation?.dernier_message?String(conversation.dernier_message):'Aucun message pour le moment',date=conversation?.dernier_le?new Date(conversation.dernier_le):null,dateTexte=date&&!Number.isNaN(date.getTime())?date.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}):'';
-  return '<div class="chat-row accepted-friend-row-netcha" role="button" tabindex="0" aria-label="Ouvrir la discussion avec '+nom+'" data-accepted-friend-search="'+recherche+'" data-member-id="'+echapperNetcha(m.id)+'" data-member-name="'+nom+'" onclick="if(!event.target.closest(&quot;button&quot;))ouvrirConversationAvecMembreNetcha(this.dataset.memberId,this.dataset.memberName)" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();ouvrirConversationAvecMembreNetcha(this.dataset.memberId,this.dataset.memberName)}" style="display:flex;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid var(--line);cursor:pointer">'+avatar+'<div class="chat-details" style="flex:1;min-width:0"><strong>'+nom+'</strong><p style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+echapperNetcha(apercu)+'</p></div><span class="muted" style="font-size:11px;white-space:nowrap">'+dateTexte+'</span><button type="button" class="primary" data-member-id="'+echapperNetcha(m.id)+'" data-member-name="'+nom+'" onclick="event.stopPropagation();ouvrirConversationDepuisBoutonNetcha(this)">Message</button></div>';
+  const recherche=echapperNetcha((String(brut)+' '+identifiant).toLocaleLowerCase()),conversation=conversationAmi(m),apercu=conversation?.dernier_message?String(conversation.dernier_message):'Aucun message pour le moment',date=conversation?.dernier_le?new Date(conversation.dernier_le):null,dateTexte=date&&!Number.isNaN(date.getTime())?date.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}):'',nonLus=Math.max(0,Number(conversation?.non_lus||0)),nonLu=nonLus>0;
+  return '<div class="chat-row accepted-friend-row-netcha'+(nonLu?' netcha-chat-unread':'')+'" role="button" tabindex="0" aria-label="Ouvrir la discussion avec '+nom+'" data-accepted-friend-search="'+recherche+'" data-member-id="'+echapperNetcha(m.id)+'" data-member-name="'+nom+'" onclick="if(!event.target.closest(&quot;button&quot;))ouvrirConversationAvecMembreNetcha(this.dataset.memberId,this.dataset.memberName)" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();ouvrirConversationAvecMembreNetcha(this.dataset.memberId,this.dataset.memberName)}" style="display:flex;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid var(--line);cursor:pointer">'+avatar+'<div class="chat-details" style="flex:1;min-width:0"><strong style="'+(nonLu?'font-weight:850;color:var(--text)':'')+'">'+nom+'</strong><p style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'+(nonLu?'font-weight:750;color:var(--text)':'')+'">'+echapperNetcha(apercu)+'</p></div><span class="muted" style="font-size:11px;white-space:nowrap">'+dateTexte+'</span>'+(nonLu?'<span class="netcha-unread-count" aria-label="'+nonLus+' messages non lus">'+(nonLus>99?'99+':nonLus)+'</span>':'')+'<button type="button" class="primary" data-member-id="'+echapperNetcha(m.id)+'" data-member-name="'+nom+'" onclick="event.stopPropagation();ouvrirConversationDepuisBoutonNetcha(this)">Message</button></div>';
  }).join('');
  filtrerAmisDiscussionsNetcha();
 }
@@ -2556,6 +2541,28 @@ async function supprimerNotificationNetcha(id,btn){
 }
 function fermerNotificationsNetcha(){document.getElementById('notificationsNetcha').style.display='none'}
 async function ouvrirNotificationsNetcha(){document.getElementById('notificationsNetcha').style.display='block';await chargerNotificationsNetcha()}
+/* Notifications instantanées dans l'interface : badge cumulatif + aperçu discret des nouveautés. */
+let netchaDernieresNotifications=null,netchaNotificationPollingActif=false;
+function afficherAlerteNotificationNetcha(n){
+ let box=document.getElementById('netchaLiveNotificationToast');
+ if(!box){box=document.createElement('div');box.id='netchaLiveNotificationToast';box.setAttribute('role','status');box.style.cssText='position:fixed;z-index:150;top:76px;left:12px;right:12px;max-width:520px;margin:auto;display:none;padding:14px 16px;border:1px solid var(--line);border-radius:16px;background:var(--panel);box-shadow:0 12px 36px #0008;color:var(--text);cursor:pointer';document.body.appendChild(box)}
+ box.innerHTML='<strong>'+echapperNetcha(n.acteur||'Netcha')+'</strong><div style="margin-top:4px">'+echapperNetcha(n.texte||'Nouvelle notification')+'</div><small class="muted">Nouvelle notification · Toucher pour ouvrir</small>';
+ box.style.display='block';box.onclick=()=>{box.style.display='none';ouvrirNotificationsNetcha()};
+ if(box._hide)clearTimeout(box._hide);box._hide=setTimeout(()=>{box.style.display='none'},6500);
+}
+async function synchroniserNotificationsNetcha(alerter=true){
+ if(!jetonNetcha()||netchaNotificationPollingActif)return;
+ netchaNotificationPollingActif=true;
+ try{
+  const d=await requeteNetcha('/api/notifications?limit=50'),xs=Array.isArray(d.notifications)?d.notifications:[],nonLues=xs.filter(n=>!n.lue),b=document.getElementById('notificationBellNetcha');
+  if(b){b.textContent=nonLues.length?'♧ '+(nonLues.length>99?'99+':nonLues.length):'♧';b.setAttribute('data-unread-count',String(nonLues.length));b.setAttribute('aria-label',nonLues.length+' notifications non lues')}
+  if(netchaDernieresNotifications===null){netchaDernieresNotifications=new Set(xs.map(n=>String(n.id)));return}
+  const nouvelles=xs.filter(n=>!n.lue&&!netchaDernieresNotifications.has(String(n.id)));
+  netchaDernieresNotifications=new Set(xs.map(n=>String(n.id)));
+  if(alerter&&nouvelles.length){nouvelles.slice(0,2).reverse().forEach((n,i)=>setTimeout(()=>afficherAlerteNotificationNetcha(n),i*900));}
+  if(document.getElementById('notificationsNetcha')?.style.display==='block')chargerNotificationsNetcha();
+ }catch(e){}finally{netchaNotificationPollingActif=false}
+}
 async function actualiserBadgeNotificationsNetcha(){
  if(!jetonNetcha())return;
  try{const d=await requeteNetcha('/api/notifications?limit=50'),xs=d.notifications||[],n=xs.filter(x=>!x.lue).length,b=document.getElementById('notificationBellNetcha');if(b)b.textContent=n?'♧ '+n:'♧'}catch(e){}
@@ -2574,8 +2581,10 @@ async function lireToutesNotificationsNetcha(){
  try{await requeteNetcha('/api/notifications/read',{method:'POST',body:JSON.stringify({})});await chargerNotificationsNetcha()}
  catch(e){toast(e.message||'Impossible de marquer les notifications comme lues.')}
 }
-window.addEventListener('netcha:auth',()=>{actualiserBadgeNotificationsNetcha();if(document.getElementById('notificationsNetcha')?.style.display==='block')chargerNotificationsNetcha()});
-if(jetonNetcha())actualiserBadgeNotificationsNetcha();
+window.addEventListener('netcha:auth',()=>{netchaDernieresNotifications=null;synchroniserNotificationsNetcha(false);if(document.getElementById('notificationsNetcha')?.style.display==='block')chargerNotificationsNetcha()});
+if(jetonNetcha())synchroniserNotificationsNetcha(false);
+setInterval(()=>{if(jetonNetcha())synchroniserNotificationsNetcha(true)},12000);
+
 </script>
 
 <script>
