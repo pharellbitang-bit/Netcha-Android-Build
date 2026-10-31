@@ -2202,9 +2202,9 @@ function ouvrirStoryUI(id){
   const update=()=>{if(v.duration&&Number.isFinite(v.duration))setProgress(v.currentTime/v.duration*100)};const ended=()=>{if(!interactionPanelOpen())suivante()};v.addEventListener('timeupdate',update);v.addEventListener('ended',ended);netchaStoryViewerVideoHandler={video:v,update,ended};
  }else{storyRemainingMs=5000;storyTimerStartedAt=Date.now();netchaStoryViewerTimer=setTimeout(()=>{if(!commentsPanel.hidden)return;setProgress(100);suivante()},storyRemainingMs)}
 }
-window.addEventListener('netcha:auth',()=>{chargerFil();chargerStoriesUI();chargerConversationsUI();actualiserRaccourciVendeurExplorerNetcha()});
+window.addEventListener('netcha:auth',()=>{actualiserRaccourciVendeurExplorerNetcha()});
 document.querySelector('[data-screen="explore"]')?.addEventListener('click',()=>actualiserRaccourciVendeurExplorerNetcha());
-chargerStoriesUI();chargerConversationsUI();chargerCatalogue();
+chargerStoriesUI();
 const champMessageNetcha=document.getElementById('messageText');if(champMessageNetcha)champMessageNetcha.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();envoyerMessageUI()}});setInterval(()=>{if(document.visibilityState==='visible'&&document.getElementById('messages')?.classList.contains('active')&&activeConversationId){window.netchaSilentRefresh=true;chargerMessagesUI().finally(()=>{window.netchaSilentRefresh=false});chargerConversationsUI()}},5000);
 </script><script src="auth.js"></script>
 <div id="editeurProfil" style="display:none;position:fixed;inset:0;z-index:40;background:#10111b;padding:24px 18px;overflow:auto">
@@ -3114,6 +3114,6 @@ async function netchaReglagesLite(){
   await netchaAppliquerLite();netchaConfigurerFlashFeed();toast('Réglages appliqués.');
  }catch(e){toast(e.message)}
 }
-if(jetonNetcha()){netchaModules();netchaAppliquerLite();}
+if(jetonNetcha()){const appliquerReglagesLite=()=>netchaAppliquerLite();if('requestIdleCallback' in window)requestIdleCallback(appliquerReglagesLite,{timeout:1800});else setTimeout(appliquerReglagesLite,900);}
 </script>
 </body></html>
