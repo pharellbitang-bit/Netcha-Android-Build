@@ -39,11 +39,11 @@ jobs:
           from pathlib import Path
 
           html = Path("www/index.html").read_text(encoding="utf-8")
-          scripts = re.findall(r'<script\\b([^>]*)>(.*?)</script\\s*>', html, re.I | re.S)
+          scripts = re.findall('<script' + chr(92) + 'b([^>]*)>(.*?)</script' + chr(92) + 's*>', html, re.I | re.S)
           checked = 0
           with tempfile.TemporaryDirectory() as tmp:
               for index, (attrs, body) in enumerate(scripts):
-                  if not body.strip() or re.search(r'type=["\\'](?:application/json|application/ld\\+json)', attrs, re.I):
+                  if not body.strip() or 'application/json' in attrs.lower() or 'application/ld+json' in attrs.lower():
                       continue
                   path = Path(tmp) / f"netcha-inline-{index}.js"
                   path.write_text(body, encoding="utf-8")
