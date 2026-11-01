@@ -785,6 +785,7 @@ header.top .top-actions>.netcha-account-button{flex-shrink:0!important}
 .netcha-circle-album-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px}
 .netcha-circle-album-grid.single{grid-template-columns:1fr}
 .netcha-circle-album-thumb{position:relative;display:block;min-width:0;padding:0;border:0;border-radius:12px;overflow:hidden;background:#07101b;aspect-ratio:1/1;cursor:pointer}
+.netcha-circle-album-item{min-width:0;display:flex;flex-direction:column;gap:4px}.netcha-circle-album-item .netcha-media-download{align-self:flex-end}
 .netcha-circle-album-thumb img{width:100%;height:100%;max-height:none;object-fit:cover;margin:0;border-radius:0}
 .netcha-circle-album-thumb span{position:absolute;right:7px;bottom:7px;padding:4px 8px;border-radius:14px;background:#000b;color:white;font-size:12px;font-weight:800}
 .netcha-album-viewer{position:fixed;inset:0;z-index:10050;background:#03060c;display:grid;grid-template-rows:52px minmax(0,1fr) auto;color:#f5f7ff}
@@ -3205,9 +3206,10 @@ function netchaHTMLAlbumCercle(publication,eager=false){
   return '<video controls playsinline preload="metadata" src="'+echapperNetcha(mediaUrlNetcha(medias[0].media_url))+'"></video>'+netchaBoutonTelechargerMedia(medias[0].media_url,publication.cercle_id||publication.id,publication.id);
  }
  return '<div class="netcha-circle-album-grid '+(medias.length===1?'single':'')+'">'+medias.map((media,index)=>
-  '<button type="button" class="netcha-circle-album-thumb" aria-label="Ouvrir la photo '+(index+1)+' sur '+medias.length+'" onclick="netchaOuvrirAlbumCercle('+Number(publication.id)+','+index+')">'+
+  '<div class="netcha-circle-album-item"><button type="button" class="netcha-circle-album-thumb" aria-label="Ouvrir la photo '+(index+1)+' sur '+medias.length+'" onclick="netchaOuvrirAlbumCercle('+Number(publication.id)+','+index+')">'+
   '<img '+(eager?'fetchpriority="high"':'loading="lazy"')+' decoding="async" src="'+echapperNetcha(mediaUrlNetcha(media.media_url))+'" alt="Photo '+(index+1)+' de la publication">'+
-  (medias.length>1?'<span>'+(index+1)+' / '+medias.length+'</span>':'')+'</button>'
+  (medias.length>1?'<span>'+(index+1)+' / '+medias.length+'</span>':'')+'</button>'+
+  netchaBoutonTelechargerMedia(media.media_url,publication.cercle_id||publication.id,publication.id+'-'+media.id)+'</div>'
  ).join('')+'</div>';
 }
 async function netchaOuvrirLikesMediaCercle(publicationId,mediaId){
