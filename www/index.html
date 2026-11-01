@@ -781,7 +781,12 @@ header.top .top-actions>.netcha-account-button{flex-shrink:0!important}
 .netcha-circle-post-head small{color:#9db1c8;font-size:12px}
 .netcha-circle-post-avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#8c86ff,#53d6d0);color:#071625;font-weight:900}
 .netcha-circle-post-text{line-height:1.5;margin:13px 0;color:#edf4ff;white-space:pre-wrap}
-.netcha-circle-post img,.netcha-circle-post video{width:100%;max-height:430px;object-fit:cover;border-radius:13px;margin-top:10px;background:#07101b}
+.netcha-circle-post img,.netcha-circle-post video{width:100%;max-height:none;object-fit:contain;border-radius:13px;margin-top:10px;background:#07101b;display:block}
+/* Une photo unique conserve son ratio naturel : aucun recadrage ni chevauchement des actions. */
+.netcha-circle-album-grid.single{grid-template-columns:minmax(0,1fr);grid-template-rows:auto;aspect-ratio:auto;height:auto;max-height:none;overflow:visible;background:transparent}
+.netcha-circle-album-grid.single .netcha-circle-album-item{height:auto;min-height:0;overflow:visible}
+.netcha-circle-album-grid.single .netcha-circle-album-thumb{height:auto;min-height:0;overflow:hidden;border-radius:13px}
+.netcha-circle-album-grid.single .netcha-circle-album-thumb img{width:100%;height:auto;max-height:none;object-fit:contain;border-radius:13px}
 .netcha-circle-album-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:4px;margin-top:10px;aspect-ratio:1.55;max-height:430px;overflow:hidden;border-radius:13px;background:#07101b}
 .netcha-circle-album-grid.single{grid-template-columns:1fr;grid-template-rows:1fr;aspect-ratio:1.45}
 .netcha-circle-album-grid.count-2{grid-template-rows:1fr;aspect-ratio:1.55}
