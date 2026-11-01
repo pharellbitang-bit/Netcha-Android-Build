@@ -3228,7 +3228,7 @@ async function netchaOuvrirAlbumCercle(publicationId,index=0){
  if(!medias.length)return;
  let current=Math.max(0,Math.min(Number(index)||0,medias.length-1));
  const overlay=document.createElement('div');overlay.className='netcha-album-viewer';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','Album photo');
- overlay.innerHTML='<header><button type="button" class="netcha-album-close" aria-label="Fermer">×</button><strong class="netcha-album-counter"></strong></header><button type="button" class="netcha-album-prev" aria-label="Photo précédente">‹</button><div class="netcha-album-stage"></div><button type="button" class="netcha-album-next" aria-label="Photo suivante">›</button><section class="netcha-album-social"><div class="netcha-album-actions"><button type="button" class="netcha-album-like">♡ J’aime</button><button type="button" class="netcha-album-likes">Voir les likes</button><button type="button" class="netcha-album-comments-count">Commentaires</button></div><div class="netcha-album-comments"><p class="muted">Chargement des commentaires…</p></div><form><input name="texte" maxlength="2000" required placeholder="Écrire un commentaire…"><button type="submit">Envoyer</button></form></section>';
+ overlay.innerHTML='<header><button type="button" class="netcha-album-close" aria-label="Fermer">×</button><strong class="netcha-album-counter"></strong></header><button type="button" class="netcha-album-prev" aria-label="Photo précédente">‹</button><div class="netcha-album-stage"></div><button type="button" class="netcha-album-next" aria-label="Photo suivante">›</button><section class="netcha-album-social"><div class="netcha-album-actions"><button type="button" class="netcha-album-like">♡ J’aime</button><button type="button" class="netcha-album-likes">Voir les likes</button><button type="button" class="netcha-album-comments-count">Commentaires</button><span class="netcha-album-download-slot"></span></div><div class="netcha-album-comments"><p class="muted">Chargement des commentaires…</p></div><form><input name="texte" maxlength="2000" required placeholder="Écrire un commentaire…"><button type="submit">Envoyer</button></form></section>';
  document.body.appendChild(overlay);
  const close=()=>{document.removeEventListener('keydown',keyHandler);overlay.remove()};
  overlay.querySelector('.netcha-album-close').onclick=close;
@@ -3245,7 +3245,9 @@ async function netchaOuvrirAlbumCercle(publicationId,index=0){
   const media=medias[current];counter.textContent=(current+1)+' / '+medias.length;
   stage.innerHTML=media.type_media==='video'?'<video controls autoplay playsinline src="'+echapperNetcha(mediaUrlNetcha(media.media_url))+'"></video>':'<img src="'+echapperNetcha(mediaUrlNetcha(media.media_url))+'" alt="Photo '+(current+1)+'">';
   const total=Number(media.nombre_likes||0);like.textContent=(media.a_like?'♥':'♡')+' J’aime · '+total;like.classList.toggle('is-liked',!!media.a_like);
-  likes.textContent='Voir les likes · '+total;comments.innerHTML='<p class="muted">Chargement…</p>';
+  likes.textContent='Voir les likes · '+total;
+  overlay.querySelector('.netcha-album-download-slot').innerHTML=netchaBoutonTelechargerMedia(media.media_url,0,publicationId+'-'+media.id);
+  comments.innerHTML='<p class="muted">Chargement…</p>';
   overlay.querySelector('.netcha-album-prev').hidden=medias.length<2;overlay.querySelector('.netcha-album-next').hidden=medias.length<2;
   try{await refreshComments()}catch(e){comments.innerHTML='<p class="muted">'+echapperNetcha(e.message||'Commentaires indisponibles.')+'</p>'}
  }
