@@ -33,3 +33,7 @@ https://pharellbitang-bit.github.io/Netcha-Android-Build/
 L'interface est servie depuis `www/`. Les appels `/api/*` sont envoyés vers le serveur Netcha de production sur Railway. Le serveur doit autoriser l'origine GitHub Pages via `NETCHA_ALLOWED_ORIGINS`. Le service worker ne met en cache que la coque statique de l'application : aucune API, session, conversation ou donnée personnelle n'est mise en cache.
 
 Sur Android, ouvrir l'adresse dans Chrome puis utiliser le menu ⋮ > Installer l'application (ou Ajouter à l'écran d'accueil selon la version de Chrome).
+
+## Correctif connexion Android — 1 novembre 2026
+
+La couche API Android normalise désormais les URL relatives, absolues et les objets `Request` avant de les envoyer vers l'API Netcha de production. Le formulaire de connexion détecte aussi les réponses HTML inattendues et affiche un message explicite au lieu d'une erreur JSON illisible.
