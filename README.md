@@ -5,7 +5,7 @@ Ce dépôt contient l'enveloppe Android Capacitor de **Netcha uniquement**.
 - Application : `com.netcha.app`
 - Interface : embarquée dans l'APK (l'écran principal reste disponible sans réseau)
 - API distante : serveur Netcha sur Railway
-- Notifications : notifications Android locales à partir des notifications récupérées depuis l'API
+- Notifications : notifications locales via l'API lorsque l'application est active ; intégration FCM préparée, activation distante conditionnée aux identifiants Firebase
 - APK : artifact GitHub Actions `netcha-android-debug-apk`
 
 ## Fonctionnement hors connexion
@@ -14,9 +14,7 @@ L'APK charge désormais son interface depuis les fichiers inclus dans l'applicat
 
 ## Notifications
 
-Lorsque Netcha est ouvert et connecté, l'application vérifie régulièrement les notifications du compte et affiche les nouvelles notifications dans le centre de notifications Android. Android peut retarder ou suspendre cette vérification lorsque l'application est en arrière-plan ou fermée. Sans service push externe ni tâche native persistante dédiée, une livraison immédiate en arrière-plan n'est pas garantie.
-
-Aucun Firebase n'est utilisé.
+Lorsque Netcha est ouvert et connecté, l'application peut vérifier les notifications du compte et afficher les nouvelles notifications localement. Le code Android prévoit également l'enregistrement d'un jeton Firebase Cloud Messaging (FCM) auprès de l'API Netcha. La livraison FCM en arrière-plan ne sera réellement active qu'après configuration du projet Firebase Android (package com.netcha.app) et des identifiants de service sur Railway. Sans ces secrets, aucune notification push distante immédiate n'est garantie.
 
 ## Interactions Android
 
