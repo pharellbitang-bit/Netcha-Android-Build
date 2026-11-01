@@ -212,6 +212,51 @@ body{background:radial-gradient(ellipse at 12% -10%,#202d4b55,transparent 36%),v
 html[data-netcha-lite="eco"] video{content-visibility:auto}
 html[data-netcha-lite="eco"] .netcha-flash-card video{background:#090a11}
 @media(prefers-reduced-motion:reduce){.netcha-module-card{transition:none}}
+
+/* NETCHA_SINGLE_PHOTO_FULL_FRAME_FIX */
+.netcha-circle-post .netcha-circle-album-grid.single{
+ display:block!important;
+ width:100%!important;
+ height:auto!important;
+ min-height:0!important;
+ max-height:none!important;
+ aspect-ratio:auto!important;
+ overflow:visible!important;
+ margin-top:10px!important;
+ background:transparent!important;
+}
+.netcha-circle-post .netcha-circle-album-grid.single .netcha-circle-album-item{
+ display:block!important;
+ width:100%!important;
+ height:auto!important;
+ min-height:0!important;
+ max-height:none!important;
+ overflow:visible!important;
+}
+.netcha-circle-post .netcha-circle-album-grid.single .netcha-circle-album-thumb{
+ display:block!important;
+ width:100%!important;
+ height:auto!important;
+ min-height:0!important;
+ max-height:none!important;
+ aspect-ratio:auto!important;
+ overflow:visible!important;
+ border-radius:13px!important;
+ background:transparent!important;
+}
+.netcha-circle-post .netcha-circle-album-grid.single .netcha-circle-album-thumb img{
+ display:block!important;
+ width:100%!important;
+ height:auto!important;
+ min-height:0!important;
+ max-height:none!important;
+ aspect-ratio:auto!important;
+ object-fit:contain!important;
+ object-position:center!important;
+ margin:0!important;
+ border-radius:13px!important;
+}
+
 </style><style>
 .news-feed{display:grid;gap:12px;margin:10px 0 22px}
 .news-feed-source-netcha{display:none!important}
