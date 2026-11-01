@@ -1,3 +1,23 @@
+/* Android Capacitor: les appels API doivent viser le serveur Netcha en ligne,
+   et non le serveur de fichiers local capacitor://localhost. */
+(function(){
+  const h=String(window.location.hostname||'').toLowerCase();
+  const localApp=window.location.protocol==='capacitor:'||h==='localhost'||h==='127.0.0.1';
+  if(!localApp||window.__netchaApiFetchReady)return;
+  window.__netchaApiFetchReady=true;
+  const fetchOriginal=window.fetch.bind(window);
+  const apiOrigin='https://gentle-tranquility-production-db0a.up.railway.app';
+  window.fetch=function(input,init){
+    try{
+      if(typeof input==='string'&&input.startsWith('/api/')){
+        input=apiOrigin+input;
+      }else if(input instanceof URL&&input.pathname.startsWith('/api/')){
+        input=new URL(input.pathname+input.search+input.hash,apiOrigin).toString();
+      }
+    }catch(_){}
+    return fetchOriginal(input,init);
+  };
+})();
 (function(){
   // Conserve la session après fermeture de l'application et migre les anciennes sessions.
   const stockageNetcha=window.netchaStockageSession||(window.netchaStockageSession=(()=>{const cle='netcha_token';try{const ancien=sessionStorage.getItem(cle);if(ancien&&!localStorage.getItem(cle))localStorage.setItem(cle,ancien);sessionStorage.removeItem(cle);return {get:()=>localStorage.getItem(cle),set:v=>localStorage.setItem(cle,v),remove:()=>localStorage.removeItem(cle)}}catch(e){return {get:()=>sessionStorage.getItem(cle),set:v=>sessionStorage.setItem(cle,v),remove:()=>sessionStorage.removeItem(cle)}}})());
