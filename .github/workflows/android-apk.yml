@@ -91,6 +91,19 @@ jobs:
           print("OK : permissions caméra, microphone et notifications vérifiées dans le manifeste.")
           PY
 
+      - name: Configure Firebase Android push
+        env:
+          NETCHA_GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.NETCHA_GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          if [ -n "$NETCHA_GOOGLE_SERVICES_JSON_BASE64" ]; then
+            echo "$NETCHA_GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > google-services.json
+            mkdir -p android/app
+            cp google-services.json android/app/google-services.json
+            echo "Firebase configuration added for com.netcha.app."
+          else
+            echo "Firebase config secret absent; APK remains buildable but FCM will not register."
+          fi
+
       - name: Configure Netcha launcher icon
         run: python3 scripts/configure-android-icon.py
 
