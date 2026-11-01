@@ -782,12 +782,15 @@ header.top .top-actions>.netcha-account-button{flex-shrink:0!important}
 .netcha-circle-post-avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#8c86ff,#53d6d0);color:#071625;font-weight:900}
 .netcha-circle-post-text{line-height:1.5;margin:13px 0;color:#edf4ff;white-space:pre-wrap}
 .netcha-circle-post img,.netcha-circle-post video{width:100%;max-height:430px;object-fit:cover;border-radius:13px;margin-top:10px;background:#07101b}
-.netcha-circle-album-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px}
-.netcha-circle-album-grid.single{grid-template-columns:1fr}
-.netcha-circle-album-thumb{position:relative;display:block;min-width:0;padding:0;border:0;border-radius:12px;overflow:hidden;background:#07101b;aspect-ratio:1/1;cursor:pointer}
-.netcha-circle-album-item{min-width:0;display:flex;flex-direction:column;gap:4px}.netcha-circle-album-item .netcha-media-download{align-self:flex-end}
-.netcha-circle-album-thumb img{width:100%;height:100%;max-height:none;object-fit:cover;margin:0;border-radius:0}
-.netcha-circle-album-thumb span{position:absolute;right:7px;bottom:7px;padding:4px 8px;border-radius:14px;background:#000b;color:white;font-size:12px;font-weight:800}
+.netcha-circle-album-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:4px;margin-top:10px;aspect-ratio:1.55;max-height:430px;overflow:hidden;border-radius:13px;background:#07101b}
+.netcha-circle-album-grid.single{grid-template-columns:1fr;grid-template-rows:1fr;aspect-ratio:1.45}
+.netcha-circle-album-grid.count-2{grid-template-rows:1fr;aspect-ratio:1.55}
+.netcha-circle-album-grid.count-3 .netcha-circle-album-item:first-child,.netcha-circle-album-grid.count-5 .netcha-circle-album-item:first-child{grid-row:span 2}
+.netcha-circle-album-item{position:relative;min-width:0;min-height:0;overflow:hidden}
+.netcha-circle-album-thumb{position:relative;display:block;width:100%;height:100%;min-width:0;min-height:0;padding:0;border:0;border-radius:0;overflow:hidden;background:#07101b;cursor:pointer}
+.netcha-circle-album-thumb img{display:block;width:100%;height:100%;max-height:none;object-fit:cover;margin:0;border-radius:0}
+.netcha-circle-album-thumb .netcha-album-more{position:absolute;inset:0;display:grid;place-items:center;background:#0009;color:white;font-size:clamp(24px,5vw,38px);font-weight:850}
+.netcha-circle-album-grid.single .netcha-circle-album-thumb{border-radius:13px}
 .netcha-album-viewer{position:fixed;inset:0;z-index:10050;background:#03060c;display:grid;grid-template-rows:52px minmax(0,1fr) auto;color:#f5f7ff}
 .netcha-album-viewer>header{display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:1px solid #ffffff1c}
 .netcha-album-viewer>header button,.netcha-album-viewer>button{border:0;background:#ffffff16;color:white;border-radius:50%;width:38px;height:38px;font-size:27px}
@@ -3205,11 +3208,11 @@ function netchaHTMLAlbumCercle(publication,eager=false){
  if(medias.length===1&&medias[0].type_media==='video'){
   return '<video controls playsinline preload="metadata" src="'+echapperNetcha(mediaUrlNetcha(medias[0].media_url))+'"></video>'+netchaBoutonTelechargerMedia(medias[0].media_url,publication.cercle_id||publication.id,publication.id);
  }
- return '<div class="netcha-circle-album-grid '+(medias.length===1?'single':'')+'">'+medias.map((media,index)=>
-  '<div class="netcha-circle-album-item"><button type="button" class="netcha-circle-album-thumb" aria-label="Ouvrir la photo '+(index+1)+' sur '+medias.length+'" onclick="netchaOuvrirAlbumCercle('+Number(publication.id)+','+index+')">'+
+ const visible=medias.slice(0,5),count=medias.length;
+ return '<div class="netcha-circle-album-grid '+(count===1?'single':'count-'+Math.min(count,5))+'">'+visible.map((media,index)=>
+  '<div class="netcha-circle-album-item"><button type="button" class="netcha-circle-album-thumb" aria-label="Ouvrir la photo '+(index+1)+' sur '+count+'" onclick="netchaOuvrirAlbumCercle('+Number(publication.id)+','+index+')">'+
   '<img '+(eager?'fetchpriority="high"':'loading="lazy"')+' decoding="async" src="'+echapperNetcha(mediaUrlNetcha(media.media_url))+'" alt="Photo '+(index+1)+' de la publication">'+
-  (medias.length>1?'<span>'+(index+1)+' / '+medias.length+'</span>':'')+'</button>'+
-  netchaBoutonTelechargerMedia(media.media_url,publication.cercle_id||publication.id,publication.id+'-'+media.id)+'</div>'
+  (index===4&&count>5?'<span class="netcha-album-more">+'+(count-5)+'</span>':'')+'</button></div>'
  ).join('')+'</div>';
 }
 async function netchaOuvrirLikesMediaCercle(publicationId,mediaId){
