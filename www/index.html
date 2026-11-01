@@ -3226,4 +3226,45 @@ async function netchaReglagesLite(){
 }
 if(jetonNetcha()){const appliquerReglagesLite=()=>netchaAppliquerLite();if('requestIdleCallback' in window)requestIdleCallback(appliquerReglagesLite,{timeout:1800});else setTimeout(appliquerReglagesLite,900);}
 </script>
+
+<script>
+/* Jeton FCM de l'appareil Android, lié au compte actuellement connecté. */
+(function(){
+ let busy=false,lastToken='';
+ function plugin(){return window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.FirebaseMessaging;}
+ async function registerToken(token){
+  if(!token||token===lastToken||!window.jetonNetcha||!jetonNetcha())return;
+  const response=await fetch('/api/push/register',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+jetonNetcha()},body:JSON.stringify({token:token,platform:'android',device_name:(navigator.userAgent||'Android').slice(0,110)})});
+  if(response.ok)lastToken=token;
+ }
+ async function initPush(){
+  const fcm=plugin();
+  if(!fcm||busy||!window.jetonNetcha||!jetonNetcha())return;
+  busy=true;
+  try{
+   const permission=await fcm.requestPermissions();
+   if(permission&&permission.receive==='denied')return;
+   if(fcm.addListener){
+    await fcm.addListener('tokenReceived',event=>registerToken(event&&event.token));
+    await fcm.addListener('notificationActionPerformed',event=>{
+     const data=event&&event.notification&&event.notification.data||{};
+     if(data.conversation_id){
+      const target=String(data.conversation_id);
+      if(typeof window.ouvrirConversationNetcha==='function')window.ouvrirConversationNetcha(target);
+      else window.dispatchEvent(new CustomEvent('netcha:open-conversation',{detail:{conversation_id:target}}));
+     }
+    });
+   }
+   const result=await fcm.getToken();
+   await registerToken(result&&result.token);
+  }catch(error){console.warn('Enregistrement des notifications Netcha indisponible',error)}
+  finally{busy=false}
+ }
+ document.addEventListener('DOMContentLoaded',initPush);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)initPush()});
+ window.addEventListener('netcha:connected',initPush);
+ setInterval(initPush,15000);
+})();
+</script>
+
 </body></html>
