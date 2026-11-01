@@ -7,15 +7,27 @@
   window.__netchaApiFetchReady=true;
   const fetchOriginal=window.fetch.bind(window);
   const apiOrigin='https://gentle-tranquility-production-db0a.up.railway.app';
-  window.fetch=function(input,init){
+  // Point d'accès unique : gère les chemins relatifs, URL et Request de Capacitor.
+  function urlApiNetcha(input){
     try{
-      if(typeof input==='string'&&input.startsWith('/api/')){
-        input=apiOrigin+input;
-      }else if(input instanceof URL&&input.pathname.startsWith('/api/')){
-        input=new URL(input.pathname+input.search+input.hash,apiOrigin).toString();
+      const source=input instanceof Request?input.url:(input instanceof URL?input.href:String(input));
+      const url=new URL(source,window.location.href);
+      if(url.pathname==='/api'||url.pathname.startsWith('/api/')){
+        return apiOrigin+url.pathname+url.search+url.hash;
       }
     }catch(_){}
-    return fetchOriginal(input,init);
+    return input;
+  }
+  window.netchaApiFetch=function(path,init){
+    const cible=urlApiNetcha(path);
+    return fetchOriginal(cible,init);
+  };
+  window.fetch=function(input,init){
+    const cible=urlApiNetcha(input);
+    if(input instanceof Request&&typeof cible==='string'&&cible!==input.url){
+      return fetchOriginal(new Request(cible,input),init);
+    }
+    return fetchOriginal(cible,init);
   };
 })();
 (function(){
@@ -105,6 +117,16 @@
   const recoveryForm=document.getElementById('netchaRecoveryForm');
   const resetForm=document.getElementById('netchaResetForm');
   const message=document.getElementById('netchaAuthMessage');
+  // Évite l'erreur cryptique « Unexpected token < » et signale les réponses HTML.
+  async function lireJsonNetcha(response){
+    const texte=await response.text();
+    try{return texte?JSON.parse(texte):{}}
+    catch(_){
+      const type=response.headers.get('content-type')||'inconnu';
+      const statut=response.status||'inconnu';
+      throw new Error('Le serveur Netcha a renvoyé une page web au lieu des données de connexion (HTTP '+statut+', '+type+'). Vérifie la connexion réseau ou réessaie dans quelques instants.');
+    }
+  }
   const title=document.getElementById('netchaAuthTitle');
   let lastFocus=null;
 
@@ -142,7 +164,7 @@
   async function afficherProfilNetcha(){
     const token=stockageNetcha.get();if(!token)return;
     const r=await fetch('/api/profile',{headers:{Authorization:'Bearer '+token}});
-    const d=await r.json();if(!r.ok)throw new Error(d.erreur||'Profil indisponible');
+    const d=await lireJsonNetcha(r);if(!r.ok)throw new Error(d.erreur||'Profil indisponible');
     const profil=d.profil||{},nomAffiche=profil.nom_affiche||profil.identifiant||'Utilisateur',identifiant=profil.identifiant||'';
     const profilZone=document.querySelector('#profile .profile-hero');
     if(profilZone){
@@ -159,7 +181,7 @@
     const token=stockageNetcha.get();if(!token)return;
     try{
       const r=await fetch('/api/account/identity',{headers:{Authorization:'Bearer '+token}});
-      const d=await r.json();if(!r.ok)throw new Error(d.erreur||'Informations de compte indisponibles');
+      const d=await lireJsonNetcha(r);if(!r.ok)throw new Error(d.erreur||'Informations de compte indisponibles');
       const identite=d.identite||{};
       if(identite.email&&identite.date_naissance)return;
       let modal=document.getElementById('netchaIdentityModal');
@@ -174,7 +196,7 @@
           if(!form.reportValidity())return;button.disabled=true;msg.textContent='Enregistrement…';
           try{
             const response=await fetch('/api/account/identity',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+stockageNetcha.get()},body:JSON.stringify({email:form.elements.email.value,telephone:form.elements.telephone.value,date_naissance:form.elements.date_naissance.value,genre:form.elements.genre.value})});
-            const result=await response.json();if(!response.ok)throw new Error(result.erreur||'Impossible d’enregistrer les coordonnées.');
+            const result=await lireJsonNetcha(response);if(!response.ok)throw new Error(result.erreur||'Impossible d’enregistrer les coordonnées.');
             modal.remove();window.dispatchEvent(new Event('netcha:auth'));await afficherProfilNetcha();
           }catch(error){msg.textContent=error.message||'Erreur de connexion.';msg.style.color='#ffb6c1'}
           finally{button.disabled=false}
@@ -194,7 +216,7 @@
     message.textContent='Préparation du lien sécurisé…';message.removeAttribute('data-error');
     try{
       const r=await fetch('/api/password/forgot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:recoveryForm.elements.email.value})});
-      const d=await r.json();if(!r.ok)throw new Error(d.erreur||'Récupération indisponible.');
+      const d=await lireJsonNetcha(r);if(!r.ok)throw new Error(d.erreur||'Récupération indisponible.');
       message.textContent=d.message||'Si cette adresse est associée à un compte, un lien sera envoyé.';
     }catch(err){message.textContent=err.message||'La récupération est momentanément indisponible.';message.dataset.error='true'}
     finally{button.disabled=false}
@@ -209,7 +231,7 @@
     message.textContent='Mise à jour sécurisée du mot de passe…';message.removeAttribute('data-error');
     try{
       const r=await fetch('/api/password/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,nouveau_mot_de_passe:password})});
-      const d=await r.json();if(!r.ok)throw new Error(d.erreur||'Réinitialisation impossible.');
+      const d=await lireJsonNetcha(r);if(!r.ok)throw new Error(d.erreur||'Réinitialisation impossible.');
       window.history.replaceState({},document.title,window.location.pathname);
       resetForm.reset();switchTab('login');message.textContent=d.message||'Mot de passe modifié. Reconnecte-toi.';
     }catch(err){message.textContent=err.message||'Réinitialisation impossible.';message.dataset.error='true'}
@@ -231,11 +253,11 @@
       }
       submit.disabled=true;message.textContent='Connexion sécurisée en cours…';message.removeAttribute('data-error');
       try{
-        const r=await fetch('/api/'+route,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        const r=await window.netchaApiFetch('/api/'+route,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
           identifiant,nom_affiche:data.get('nom_affiche')||'',mot_de_passe:data.get('mot_de_passe'),
           email:data.get('email')||null,telephone:data.get('telephone')||null,date_naissance:data.get('date_naissance')||null,genre:data.get('genre')||null,code_parrainage:(new URLSearchParams(window.location.search).get('invite')||'').toUpperCase()
         })});
-        const d=await r.json();
+        const d=await lireJsonNetcha(r);
         if(!r.ok)throw new Error(d.erreur||'Opération impossible.');
         if(type==='inscription'&&!d.token){
           message.textContent='Compte créé. Connecte-toi avec tes identifiants.';
