@@ -782,6 +782,30 @@ header.top .top-actions>.netcha-account-button{flex-shrink:0!important}
 .netcha-circle-post-avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#8c86ff,#53d6d0);color:#071625;font-weight:900}
 .netcha-circle-post-text{line-height:1.5;margin:13px 0;color:#edf4ff;white-space:pre-wrap}
 .netcha-circle-post img,.netcha-circle-post video{width:100%;max-height:430px;object-fit:cover;border-radius:13px;margin-top:10px;background:#07101b}
+.netcha-circle-album-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px}
+.netcha-circle-album-grid.single{grid-template-columns:1fr}
+.netcha-circle-album-thumb{position:relative;display:block;min-width:0;padding:0;border:0;border-radius:12px;overflow:hidden;background:#07101b;aspect-ratio:1/1;cursor:pointer}
+.netcha-circle-album-thumb img{width:100%;height:100%;max-height:none;object-fit:cover;margin:0;border-radius:0}
+.netcha-circle-album-thumb span{position:absolute;right:7px;bottom:7px;padding:4px 8px;border-radius:14px;background:#000b;color:white;font-size:12px;font-weight:800}
+.netcha-album-viewer{position:fixed;inset:0;z-index:10050;background:#03060c;display:grid;grid-template-rows:52px minmax(0,1fr) auto;color:#f5f7ff}
+.netcha-album-viewer>header{display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:1px solid #ffffff1c}
+.netcha-album-viewer>header button,.netcha-album-viewer>button{border:0;background:#ffffff16;color:white;border-radius:50%;width:38px;height:38px;font-size:27px}
+.netcha-album-stage{min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:pan-y}
+.netcha-album-stage img,.netcha-album-stage video{max-width:100%;max-height:100%;object-fit:contain}
+.netcha-album-viewer>.netcha-album-prev,.netcha-album-viewer>.netcha-album-next{position:absolute;top:38%;z-index:2}
+.netcha-album-viewer>.netcha-album-prev{left:10px}.netcha-album-viewer>.netcha-album-next{right:10px}
+.netcha-album-social{max-height:38vh;overflow:auto;background:#101a29;border-top:1px solid #ffffff24;padding:10px 14px calc(12px + env(safe-area-inset-bottom))}
+.netcha-album-actions{display:flex;gap:8px;flex-wrap:wrap}
+.netcha-album-actions button{border:0;border-radius:18px;padding:9px 12px;background:#26364b;color:#f3f6ff;font-weight:750}
+.netcha-album-actions button.is-liked{color:#ff8da5}
+.netcha-album-comments{max-height:150px;overflow:auto;padding:8px 0}
+.netcha-album-comments article{padding:7px 0;border-bottom:1px solid #ffffff18}
+.netcha-album-comments p{margin:4px 0;white-space:pre-wrap}
+.netcha-album-comments small{color:#9db1c8}
+.netcha-album-social form{display:flex;gap:8px}
+.netcha-album-social input{flex:1;min-width:0;border-radius:18px;border:1px solid #3b506b;background:#091321;color:white;padding:11px}
+.netcha-album-social form button{border:0;border-radius:18px;padding:0 14px;background:linear-gradient(110deg,#8238ed,#e43e9b);color:white;font-weight:800}
+
 .netcha-circle-post-actions{display:flex;justify-content:flex-end;margin-top:12px}
 .netcha-circle-post-actions button{border:0;background:transparent;color:#9eaaff;font-weight:700}
 .netcha-circle-engagement{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid #ffffff18}
@@ -996,7 +1020,7 @@ body:has(#circles.active) .bottom,body:has(#circleDetail.active) .bottom{display
  <div class="netcha-circle-section-head"><h2>Publications</h2><button class="textbtn" onclick="document.getElementById('circlePostTextNetcha')?.focus()">＋ Écrire</button></div>
  <form id="circlePostComposerNetcha" class="netcha-circle-composer" onsubmit="netchaPublierDansCercle(event,window.netchaCercleActif)">
   <textarea id="circlePostTextNetcha" maxlength="5000" placeholder="Partage une idée avec les membres du cercle…"></textarea>
-  <div class="netcha-circle-composer-tools"><label class="netcha-circle-media-pick">＋ Photo ou vidéo<input id="circlePostMediaNetcha" type="file" accept="image/*,video/mp4,video/webm,video/quicktime"></label><span id="circlePostMediaNameNetcha" class="muted">Facultatif</span><button id="circlePostSubmitNetcha" class="netcha-circle-join" type="submit">Publier</button></div>
+  <div class="netcha-circle-composer-tools"><label class="netcha-circle-media-pick">＋ Photos ou vidéo<input id="circlePostMediaNetcha" type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" multiple></label><span id="circlePostMediaNameNetcha" class="muted">Facultatif</span><button id="circlePostSubmitNetcha" class="netcha-circle-join" type="submit">Publier</button></div>
   <div id="circlePostProgressNetcha" class="netcha-circle-post-progress" role="status" aria-live="polite"></div>
  </form>
  <div id="circleDetailPostsNetcha"><p class="muted">Chargement…</p></div>
@@ -3070,7 +3094,7 @@ async function chargerExplorationCerclesNetcha(options={}){
    if(!netchaCerclesCache.length){s.innerHTML='<p class="muted">Aucun cercle public ne correspond à cette recherche.</p><div id="circleSuggestionsSentinelNetcha" aria-hidden="true" style="flex:0 0 1px;width:1px"></div>';}
   }
   netchaPrechargerPhotosCercles(page);
-  if(!append&&f)f.innerHTML=(d.publications||[]).map(p=>'<article class="netcha-circle-post" data-circle-publication="'+p.id+'" data-circle-seen="'+(p.deja_vu?'1':'0')+'"><div class="netcha-circle-post-head"><div class="netcha-circle-post-avatar">'+echapperNetcha((p.cercle||'C').slice(0,1).toUpperCase())+'</div><div><strong>'+echapperNetcha(p.cercle)+'</strong><small>'+echapperNetcha(p.auteur)+' · '+dateNetcha(p.cree_le)+'</small></div>'+(String(p.auteur_id)===String(currentAccountIdNetcha)?'<button type="button" class="netcha-circle-more" aria-label="Options de ma publication" onclick="netchaSupprimerMedia(\'cercle\','+p.id+','+p.cercle_id+')">⋮</button>':'')+'</div>'+(p.texte?'<p class="netcha-circle-post-text">'+echapperNetcha(p.texte)+'</p>':'')+(p.media_url?(p.type_media==='video'?'<video controls playsinline preload="metadata" src="'+echapperNetcha(mediaUrlNetcha(p.media_url))+'"></video>':'<img loading="eager" decoding="async" fetchpriority="high" src="'+echapperNetcha(mediaUrlNetcha(p.media_url))+'" alt="Média publié dans le cercle">')+netchaBoutonTelechargerMedia(p.media_url,p.cercle_id,p.id):'')+'<div class="netcha-circle-engagement">'+(p.membre?'<button type="button" class="'+(p.a_like?'is-liked':'')+'" onclick="netchaBasculerLikePublicationCercle('+p.id+',this)">'+(p.a_like?'♥':'♡')+' J’aime · '+Number(p.nombre_likes||0)+'</button><button type="button" onclick="netchaOuvrirLikesPublicationCercle('+p.id+')">Voir qui aime ('+Number(p.nombre_likes||0)+')</button><button type="button" onclick="netchaOuvrirCommentairesPublicationCercle('+p.id+')">Commenter · '+Number(p.nombre_commentaires||0)+'</button>':'<button type="button" onclick="netchaOuvrirCercle('+p.cercle_id+')">Rejoindre pour aimer et participer</button>')+'</div><div class="netcha-circle-post-actions"><button type="button" onclick="netchaOuvrirCercle('+p.cercle_id+')">Ouvrir le cercle · '+p.membres+' membres</button></div></article>').join('')||'<p class="muted">Les publications des cercles apparaîtront ici.</p>';
+  if(!append&&f)f.innerHTML=(d.publications||[]).map(p=>'<article class="netcha-circle-post" data-circle-publication="'+p.id+'" data-circle-seen="'+(p.deja_vu?'1':'0')+'"><div class="netcha-circle-post-head"><div class="netcha-circle-post-avatar">'+echapperNetcha((p.cercle||'C').slice(0,1).toUpperCase())+'</div><div><strong>'+echapperNetcha(p.cercle)+'</strong><small>'+echapperNetcha(p.auteur)+' · '+dateNetcha(p.cree_le)+'</small></div>'+(String(p.auteur_id)===String(currentAccountIdNetcha)?'<button type="button" class="netcha-circle-more" aria-label="Options de ma publication" onclick="netchaSupprimerMedia(\'cercle\','+p.id+','+p.cercle_id+')">⋮</button>':'')+'</div>'+(p.texte?'<p class="netcha-circle-post-text">'+echapperNetcha(p.texte)+'</p>':'')+netchaHTMLAlbumCercle(p,true)+'<div class="netcha-circle-engagement">'+(p.membre?'<button type="button" class="'+(p.a_like?'is-liked':'')+'" onclick="netchaBasculerLikePublicationCercle('+p.id+',this)">'+(p.a_like?'♥':'♡')+' J’aime · '+Number(p.nombre_likes||0)+'</button><button type="button" onclick="netchaOuvrirLikesPublicationCercle('+p.id+')">Voir qui aime ('+Number(p.nombre_likes||0)+')</button><button type="button" onclick="netchaOuvrirCommentairesPublicationCercle('+p.id+')">Commenter · '+Number(p.nombre_commentaires||0)+'</button>':'<button type="button" onclick="netchaOuvrirCercle('+p.cercle_id+')">Rejoindre pour aimer et participer</button>')+'</div><div class="netcha-circle-post-actions"><button type="button" onclick="netchaOuvrirCercle('+p.cercle_id+')">Ouvrir le cercle · '+p.membres+' membres</button></div></article>').join('')||'<p class="muted">Les publications des cercles apparaîtront ici.</p>';
   if(!append&&f)netchaObserverVuesPublicationsCercles();
   netchaConfigurerChargementCercles();
  }catch(e){
@@ -3171,6 +3195,66 @@ async function netchaOuvrirLikesPublicationCercle(id){
   list.innerHTML=(d.likes||[]).length?d.likes.map(x=>'<article><span class="netcha-likes-avatar">'+(x.avatar_url?'<img src="'+echapperNetcha(mediaUrlNetcha(x.avatar_url))+'" alt="">':echapperNetcha((x.nom||'M').slice(0,1).toUpperCase()))+'</span><span><strong>'+echapperNetcha(x.nom||x.identifiant||'Membre')+'</strong><small>@'+echapperNetcha(x.identifiant||'')+'</small></span><b>♥</b></article>').join(''):'<p class="muted">Sois le premier à aimer cette publication.</p>';
  }catch(e){overlay.querySelector('.netcha-likes-list').innerHTML='<p class="muted">'+echapperNetcha(e.message||'Liste indisponible.')+'</p>'}
 }
+window.netchaAlbumsCercles=window.netchaAlbumsCercles||{};
+function netchaHTMLAlbumCercle(publication,eager=false){
+ const medias=Array.isArray(publication.medias)?publication.medias:[];
+ if(!medias.length&&publication.media_url)medias.push({id:0,media_url:publication.media_url,type_media:publication.type_media||'image'});
+ if(!medias.length)return '';
+ window.netchaAlbumsCercles[String(publication.id)]=medias;
+ if(medias.length===1&&medias[0].type_media==='video'){
+  return '<video controls playsinline preload="metadata" src="'+echapperNetcha(mediaUrlNetcha(medias[0].media_url))+'"></video>'+netchaBoutonTelechargerMedia(medias[0].media_url,publication.cercle_id||publication.id,publication.id);
+ }
+ return '<div class="netcha-circle-album-grid '+(medias.length===1?'single':'')+'">'+medias.map((media,index)=>
+  '<button type="button" class="netcha-circle-album-thumb" aria-label="Ouvrir la photo '+(index+1)+' sur '+medias.length+'" onclick="netchaOuvrirAlbumCercle('+Number(publication.id)+','+index+')">'+
+  '<img '+(eager?'fetchpriority="high"':'loading="lazy"')+' decoding="async" src="'+echapperNetcha(mediaUrlNetcha(media.media_url))+'" alt="Photo '+(index+1)+' de la publication">'+
+  (medias.length>1?'<span>'+(index+1)+' / '+medias.length+'</span>':'')+'</button>'
+ ).join('')+'</div>';
+}
+async function netchaOuvrirLikesMediaCercle(publicationId,mediaId){
+ const overlay=document.createElement('div');overlay.className='netcha-likes-overlay';
+ overlay.innerHTML='<section class="netcha-likes-panel" role="dialog" aria-modal="true"><header><strong>Personnes qui aiment cette photo</strong><button type="button" aria-label="Fermer">×</button></header><div class="netcha-likes-list"><p class="muted">Chargement…</p></div></section>';
+ const close=()=>overlay.remove();overlay.addEventListener('click',e=>{if(e.target===overlay)close()});overlay.querySelector('header button').onclick=close;document.body.appendChild(overlay);
+ try{const d=await requeteNetcha('/api/cercles/publications/'+publicationId+'/medias/'+mediaId+'/likes');const list=overlay.querySelector('.netcha-likes-list');
+ list.innerHTML=(d.likes||[]).map(x=>'<article><span class="netcha-likes-avatar">'+(x.avatar_url?'<img src="'+echapperNetcha(mediaUrlNetcha(x.avatar_url))+'" alt="">':echapperNetcha((x.nom||'M').slice(0,1).toUpperCase()))+'</span><span><strong>'+echapperNetcha(x.nom||x.identifiant||'Membre')+'</strong><small>@'+echapperNetcha(x.identifiant||'')+'</small></span><b>♥</b></article>').join('')||'<p class="muted">Personne n’a encore aimé cette photo.</p>';
+ }catch(e){overlay.querySelector('.netcha-likes-list').innerHTML='<p class="muted">'+echapperNetcha(e.message||'Liste indisponible.')+'</p>'}
+}
+async function netchaOuvrirAlbumCercle(publicationId,index=0){
+ const medias=window.netchaAlbumsCercles[String(publicationId)]||[];
+ if(!medias.length)return;
+ let current=Math.max(0,Math.min(Number(index)||0,medias.length-1));
+ const overlay=document.createElement('div');overlay.className='netcha-album-viewer';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','Album photo');
+ overlay.innerHTML='<header><button type="button" class="netcha-album-close" aria-label="Fermer">×</button><strong class="netcha-album-counter"></strong></header><button type="button" class="netcha-album-prev" aria-label="Photo précédente">‹</button><div class="netcha-album-stage"></div><button type="button" class="netcha-album-next" aria-label="Photo suivante">›</button><section class="netcha-album-social"><div class="netcha-album-actions"><button type="button" class="netcha-album-like">♡ J’aime</button><button type="button" class="netcha-album-likes">Voir les likes</button><button type="button" class="netcha-album-comments-count">Commentaires</button></div><div class="netcha-album-comments"><p class="muted">Chargement des commentaires…</p></div><form><input name="texte" maxlength="2000" required placeholder="Écrire un commentaire…"><button type="submit">Envoyer</button></form></section>';
+ document.body.appendChild(overlay);
+ const close=()=>{document.removeEventListener('keydown',keyHandler);overlay.remove()};
+ overlay.querySelector('.netcha-album-close').onclick=close;
+ overlay.addEventListener('click',e=>{if(e.target===overlay)close()});
+ const stage=overlay.querySelector('.netcha-album-stage'),counter=overlay.querySelector('.netcha-album-counter'),like=overlay.querySelector('.netcha-album-like'),likes=overlay.querySelector('.netcha-album-likes'),comments=overlay.querySelector('.netcha-album-comments'),commentsCount=overlay.querySelector('.netcha-album-comments-count'),form=overlay.querySelector('form'),input=form.elements.texte,send=form.querySelector('button');
+ let startX=0,commentCount=0;
+ async function refreshComments(){
+  const media=medias[current],d=await requeteNetcha('/api/cercles/publications/'+publicationId+'/medias/'+media.id+'/commentaires');
+  const rows=d.commentaires||[];commentCount=rows.length;
+  comments.innerHTML=rows.map(x=>'<article><strong>'+echapperNetcha(x.auteur||'Membre')+'</strong><p>'+echapperNetcha(x.texte||'')+'</p><small>'+dateNetcha(x.cree_le)+'</small></article>').join('')||'<p class="muted">Aucun commentaire pour cette photo.</p>';
+  commentsCount.textContent='Commentaires · '+commentCount;
+ }
+ async function show(){
+  const media=medias[current];counter.textContent=(current+1)+' / '+medias.length;
+  stage.innerHTML=media.type_media==='video'?'<video controls autoplay playsinline src="'+echapperNetcha(mediaUrlNetcha(media.media_url))+'"></video>':'<img src="'+echapperNetcha(mediaUrlNetcha(media.media_url))+'" alt="Photo '+(current+1)+'">';
+  const total=Number(media.nombre_likes||0);like.textContent=(media.a_like?'♥':'♡')+' J’aime · '+total;like.classList.toggle('is-liked',!!media.a_like);
+  likes.textContent='Voir les likes · '+total;comments.innerHTML='<p class="muted">Chargement…</p>';
+  overlay.querySelector('.netcha-album-prev').hidden=medias.length<2;overlay.querySelector('.netcha-album-next').hidden=medias.length<2;
+  try{await refreshComments()}catch(e){comments.innerHTML='<p class="muted">'+echapperNetcha(e.message||'Commentaires indisponibles.')+'</p>'}
+ }
+ function move(delta){if(medias.length<2)return;current=(current+delta+medias.length)%medias.length;void show()}
+ overlay.querySelector('.netcha-album-prev').onclick=()=>move(-1);overlay.querySelector('.netcha-album-next').onclick=()=>move(1);
+ function keyHandler(e){if(e.key==='Escape')close();if(e.key==='ArrowLeft')move(-1);if(e.key==='ArrowRight')move(1)}
+ document.addEventListener('keydown',keyHandler);
+ stage.addEventListener('touchstart',e=>{startX=e.changedTouches[0]?.clientX||0},{passive:true});
+ stage.addEventListener('touchend',e=>{const delta=(e.changedTouches[0]?.clientX||0)-startX;if(Math.abs(delta)>45)move(delta<0?1:-1)},{passive:true});
+ like.onclick=async()=>{const media=medias[current];like.disabled=true;try{const d=await requeteNetcha('/api/cercles/publications/'+publicationId+'/medias/'+media.id+'/reactions',{method:'POST',body:'{}'});media.a_like=!!d.aime;media.nombre_likes=Number(d.total||0);like.textContent=(media.a_like?'♥':'♡')+' J’aime · '+media.nombre_likes;like.classList.toggle('is-liked',media.a_like);likes.textContent='Voir les likes · '+media.nombre_likes}catch(e){toast(e.message||'Réaction impossible.')}finally{like.disabled=false}};
+ likes.onclick=()=>netchaOuvrirLikesMediaCercle(publicationId,medias[current].id);
+ form.onsubmit=async e=>{e.preventDefault();const texte=input.value.trim();if(!texte)return;send.disabled=true;try{await requeteNetcha('/api/cercles/publications/'+publicationId+'/medias/'+medias[current].id+'/commentaires',{method:'POST',body:JSON.stringify({texte})});input.value='';await refreshComments()}catch(err){toast(err.message||'Commentaire impossible.')}finally{send.disabled=false}};
+ await show();
+}
 async function netchaActualiserDetailCercle(){
  const id=window.netchaCercleActif;if(!id)return;
  const posts=document.getElementById('circleDetailPostsNetcha'),info=document.getElementById('circleDetailInfoNetcha');
@@ -3180,7 +3264,7 @@ async function netchaActualiserDetailCercle(){
   const cercle=(c.cercles||[]).find(x=>String(x.id)===String(id));
   document.getElementById('circleDetailTitleNetcha').textContent=cercle?.nom||'Cercle';
   if(info)info.innerHTML='<div class="netcha-circle-detail-card">'+(cercle?.photo_url?'<img class="netcha-circle-detail-photo" src="'+echapperNetcha(mediaUrlNetcha(cercle.photo_url))+'" alt="Photo du cercle">':'')+'<h2>'+echapperNetcha(cercle?.nom||'Cercle')+'</h2><p>'+echapperNetcha(cercle?.description||'Communauté Netcha')+'</p><span>'+echapperNetcha(cercle?.categorie||'Autres')+' · ♟ '+(cercle?.membres||0)+' membres · '+(cercle?.visibilite==='prive'?'Privé':'Public')+'</span><div class="netcha-circle-detail-actions">'+(cercle?.membre?'<button type="button" class="netcha-circle-join" onclick="document.getElementById(\'circlePostTextNetcha\')?.focus()">＋ Publier</button>':'<button type="button" class="netcha-circle-join" onclick="netchaJoin('+id+')">Rejoindre le cercle</button>')+(String(cercle?.createur_id)===String(currentAccountIdNetcha)?'<button class="textbtn" onclick="netchaGererDemandesCercle('+id+')">Demandes</button>':'')+'</div></div>';
-  const publications=(d.publications||[]).map(p=>({date:p.cree_le,html:'<article class="netcha-circle-post"><div class="netcha-circle-post-head"><div class="netcha-circle-post-avatar">'+echapperNetcha((p.auteur||'M').slice(0,1).toUpperCase())+'</div><div><strong>'+echapperNetcha(p.auteur)+'</strong><small>'+dateNetcha(p.cree_le)+'</small></div>'+(String(p.auteur_id)===String(currentAccountIdNetcha)?'<button type="button" class="netcha-circle-more" aria-label="Options de ma publication" onclick="netchaSupprimerMedia(\'cercle\','+p.id+','+id+')">⋮</button>':'')+'</div>'+(p.texte?'<p class="netcha-circle-post-text">'+echapperNetcha(p.texte)+'</p>':'')+(p.media_url?(p.type_media==='video'?'<video controls playsinline src="'+echapperNetcha(mediaUrlNetcha(p.media_url))+'"></video>':'<img loading="lazy" src="'+echapperNetcha(mediaUrlNetcha(p.media_url))+'" alt="Publication du cercle">')+netchaBoutonTelechargerMedia(p.media_url,id,p.id):'')+(p.membre?'<div class="netcha-circle-engagement"><button type="button" class="'+(p.a_like?'is-liked':'')+'" onclick="netchaBasculerLikePublicationCercle('+p.id+',this)">'+(p.a_like?'♥':'♡')+' J’aime · '+Number(p.nombre_likes||0)+'</button><button type="button" onclick="netchaOuvrirLikesPublicationCercle('+p.id+')">Voir qui aime ('+Number(p.nombre_likes||0)+')</button><button type="button" onclick="netchaOuvrirCommentairesPublicationCercle('+p.id+')">Commenter · '+Number(p.nombre_commentaires||0)+'</button></div>':'<div class="netcha-circle-engagement"><span class="muted">Rejoins ce cercle pour aimer et participer.</span></div>')+'</article>'}));
+  const publications=(d.publications||[]).map(p=>({date:p.cree_le,html:'<article class="netcha-circle-post"><div class="netcha-circle-post-head"><div class="netcha-circle-post-avatar">'+echapperNetcha((p.auteur||'M').slice(0,1).toUpperCase())+'</div><div><strong>'+echapperNetcha(p.auteur)+'</strong><small>'+dateNetcha(p.cree_le)+'</small></div>'+(String(p.auteur_id)===String(currentAccountIdNetcha)?'<button type="button" class="netcha-circle-more" aria-label="Options de ma publication" onclick="netchaSupprimerMedia(\'cercle\','+p.id+','+id+')">⋮</button>':'')+'</div>'+(p.texte?'<p class="netcha-circle-post-text">'+echapperNetcha(p.texte)+'</p>':'')+netchaHTMLAlbumCercle(p)+(p.membre?'<div class="netcha-circle-engagement"><button type="button" class="'+(p.a_like?'is-liked':'')+'" onclick="netchaBasculerLikePublicationCercle('+p.id+',this)">'+(p.a_like?'♥':'♡')+' J’aime · '+Number(p.nombre_likes||0)+'</button><button type="button" onclick="netchaOuvrirLikesPublicationCercle('+p.id+')">Voir qui aime ('+Number(p.nombre_likes||0)+')</button><button type="button" onclick="netchaOuvrirCommentairesPublicationCercle('+p.id+')">Commenter · '+Number(p.nombre_commentaires||0)+'</button></div>':'<div class="netcha-circle-engagement"><span class="muted">Rejoins ce cercle pour aimer et participer.</span></div>')+'</article>'}));
   const partages=(s.partages||[]).map(p=>({date:p.cree_le,html:'<article class="netcha-circle-post netcha-circle-shared-post"><div class="netcha-circle-post-head"><div class="netcha-circle-post-avatar">↗</div><div><strong>'+echapperNetcha(p.auteur||'Membre Netcha')+'</strong><small> a partagé un '+(p.type_contenu==='flash'?'Flash':'événement')+' · '+dateNetcha(p.cree_le)+'</small></div></div><p class="netcha-circle-post-text">'+echapperNetcha(p.titre||(p.type_contenu==='flash'?'Flash partagé':'Événement partagé'))+'</p>'+(p.media_url?'<video controls playsinline preload="metadata"'+(p.miniature_url?' poster="'+echapperNetcha(mediaUrlNetcha(p.miniature_url))+'"':'')+' src="'+echapperNetcha(mediaUrlNetcha(p.media_url))+'"></video>'+netchaBoutonTelechargerMedia(p.media_url,id,'partage-'+p.id):'')+(p.type_contenu==='evenement'?'<p class="muted">'+echapperNetcha(p.lieu||'')+(p.debut_le?' · '+dateNetcha(p.debut_le):'')+'</p>':'')+'</article>'}));
   const fil=[...publications,...partages].sort((a,b)=>Date.parse(b.date||0)-Date.parse(a.date||0));
   if(posts)posts.innerHTML=fil.map(x=>x.html).join('')||'<p class="muted">Aucune publication pour le moment. Lance la conversation !</p>';
@@ -3189,36 +3273,49 @@ async function netchaActualiserDetailCercle(){
 async function netchaPublierDansCercle(event,id){
  if(event)event.preventDefault();
  if(!id)return;
- const form=document.getElementById('circlePostComposerNetcha');
  const text=document.getElementById('circlePostTextNetcha');
  const mediaInput=document.getElementById('circlePostMediaNetcha');
  const submit=document.getElementById('circlePostSubmitNetcha');
  const progress=document.getElementById('circlePostProgressNetcha');
- const texte=(text?.value||'').trim(),file=mediaInput?.files?.[0]||null;
- if(!texte&&!file){if(progress)progress.textContent='Ajoute un texte ou une photo/vidéo.';return}
- if(file&&file.size>25*1024*1024){if(progress)progress.textContent='Le média dépasse 25 Mo.';return}
+ const texte=(text?.value||'').trim(),files=Array.from(mediaInput?.files||[]);
+ if(!texte&&!files.length){if(progress)progress.textContent='Ajoute un texte ou une photo/vidéo.';return}
+ if(files.length>10){if(progress)progress.textContent='Tu peux sélectionner jusqu’à 10 photos.';return}
+ if(files.some(file=>file.size>25*1024*1024)){if(progress)progress.textContent='Chaque média doit faire 25 Mo maximum.';return}
+ const videos=files.filter(file=>file.type.startsWith('video/'));
+ const images=files.filter(file=>file.type.startsWith('image/'));
+ if(videos.length&&(files.length!==1||images.length)){if(progress)progress.textContent='Une vidéo se publie seule. Pour un album, sélectionne uniquement des photos.';return}
+ if(files.length&&images.length!==files.length&&!videos.length){if(progress)progress.textContent='Format photo non pris en charge.';return}
  if(submit)submit.disabled=true;
- if(progress)progress.textContent=file?'Envoi du média en cours…':'Publication en cours…';
+ if(progress)progress.textContent=files.length>1?'Envoi des photos (0/'+files.length+')…':files.length?'Envoi du média…':'Publication en cours…';
  try{
-  let media_url=null,type_media='aucun';
-  if(file){
+  const televerser=async(file,index)=>{
    const up=await fetch('/api/media/upload',{method:'PUT',headers:{Authorization:'Bearer '+jetonNetcha(),'Content-Type':file.type},body:file});
    const data=await up.json();if(!up.ok)throw new Error(data.erreur||'Téléversement impossible.');
-   media_url=data.media_url;type_media=file.type.startsWith('video/')?'video':'image';
+   if(progress&&files.length>1)progress.textContent='Envoi des photos ('+(index+1)+'/'+files.length+')…';
+   return data.media_url;
+  };
+  let payload={texte,type_media:'aucun'};
+  if(images.length){
+   const urls=[];
+   for(let n=0;n<images.length;n++)urls.push(await televerser(images[n],n));
+   payload.medias=urls.map(media_url=>({media_url}));
+   payload.type_media='image';
+  }else if(videos.length){
+   payload.media_url=await televerser(videos[0],0);
+   payload.type_media='video';
   }
   if(progress)progress.textContent='Publication en cours…';
-  await requeteNetcha('/api/cercles/'+id+'/publications',{method:'POST',body:JSON.stringify({texte,media_url,type_media})});
+  await requeteNetcha('/api/cercles/'+id+'/publications',{method:'POST',body:JSON.stringify(payload)});
   if(text)text.value='';if(mediaInput)mediaInput.value='';
-  const name=document.getElementById('circlePostMediaNameNetcha');if(name)name.textContent='Facultatif';
+  const name=document.getElementById('circlePostMediaNameNetcha');if(name)name.textContent='Jusqu’à 10 photos ou une vidéo';
   if(progress)progress.textContent='Publication publiée.';
   toast('Publication ajoutée au cercle.');
-  // Le rendu du fil est lancé sans bloquer le formulaire ni la navigation.
   void netchaActualiserDetailCercle();
   void chargerExplorationCerclesNetcha();
  }catch(e){if(progress)progress.textContent=e.message||'Publication impossible.';toast(e.message||'Publication impossible.')}
  finally{if(submit)submit.disabled=false}
 }
-document.addEventListener('change',e=>{if(e.target?.id==='circlePostMediaNetcha'){const n=document.getElementById('circlePostMediaNameNetcha');if(n)n.textContent=e.target.files?.[0]?.name||'Facultatif'}});
+document.addEventListener('change',e=>{if(e.target?.id==='circlePostMediaNetcha'){const n=document.getElementById('circlePostMediaNameNetcha');const files=Array.from(e.target.files||[]);if(n)n.textContent=files.length>1?files.length+' photos sélectionnées':files[0]?.name||'Jusqu’à 10 photos ou une vidéo'}});
 
 async function netchaGererDemandesCercle(id){
  try{
