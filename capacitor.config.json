@@ -9,6 +9,13 @@
     "LocalNotifications": {
       "iconColor": "#8b9cff",
       "sound": null
+    },
+    "FirebaseMessaging": {
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
     }
   }
 }
