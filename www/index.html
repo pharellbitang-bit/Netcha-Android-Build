@@ -1021,7 +1021,7 @@ body:has(#circles.active) .bottom,body:has(#circleDetail.active) .bottom{display
  <div class="netcha-circle-section-head"><h2>Publications</h2><button class="textbtn" onclick="document.getElementById('circlePostTextNetcha')?.focus()">＋ Écrire</button></div>
  <form id="circlePostComposerNetcha" class="netcha-circle-composer" onsubmit="netchaPublierDansCercle(event,window.netchaCercleActif)">
   <textarea id="circlePostTextNetcha" maxlength="5000" placeholder="Partage une idée avec les membres du cercle…"></textarea>
-  <div class="netcha-circle-composer-tools"><label class="netcha-circle-media-pick">＋ Photos ou vidéo<input id="circlePostMediaNetcha" type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" multiple></label><span id="circlePostMediaNameNetcha" class="muted">Facultatif</span><button id="circlePostSubmitNetcha" class="netcha-circle-join" type="submit">Publier</button></div>
+  <div class="netcha-circle-composer-tools"><label class="netcha-circle-media-pick">＋ Ajouter des photos<input id="circlePostPhotosNetcha" type="file" accept="image/*" multiple></label><label class="netcha-circle-media-pick">＋ Ajouter une vidéo<input id="circlePostVideoNetcha" type="file" accept="video/*"></label><span id="circlePostMediaNameNetcha" class="muted">Jusqu’à 10 photos ou une vidéo</span><button id="circlePostSubmitNetcha" class="netcha-circle-join" type="submit">Publier</button></div>
   <div id="circlePostProgressNetcha" class="netcha-circle-post-progress" role="status" aria-live="polite"></div>
  </form>
  <div id="circleDetailPostsNetcha"><p class="muted">Chargement…</p></div>
@@ -3276,17 +3276,19 @@ async function netchaPublierDansCercle(event,id){
  if(event)event.preventDefault();
  if(!id)return;
  const text=document.getElementById('circlePostTextNetcha');
- const mediaInput=document.getElementById('circlePostMediaNetcha');
+ const photosInput=document.getElementById('circlePostPhotosNetcha');
+ const videoInput=document.getElementById('circlePostVideoNetcha');
  const submit=document.getElementById('circlePostSubmitNetcha');
  const progress=document.getElementById('circlePostProgressNetcha');
- const texte=(text?.value||'').trim(),files=Array.from(mediaInput?.files||[]);
+ const texte=(text?.value||'').trim(),photos=Array.from(photosInput?.files||[]),video=videoInput?.files?.[0]||null,files=photos.concat(video?[video]:[]);
  if(!texte&&!files.length){if(progress)progress.textContent='Ajoute un texte ou une photo/vidéo.';return}
- if(files.length>10){if(progress)progress.textContent='Tu peux sélectionner jusqu’à 10 photos.';return}
+ if(photos.length>10){if(progress)progress.textContent='Tu peux sélectionner jusqu’à 10 photos.';return}
+ if(video&&photos.length){if(progress)progress.textContent='Publie soit un album de photos, soit une vidéo.';return}
  if(files.some(file=>file.size>25*1024*1024)){if(progress)progress.textContent='Chaque média doit faire 25 Mo maximum.';return}
- const videos=files.filter(file=>file.type.startsWith('video/'));
- const images=files.filter(file=>file.type.startsWith('image/'));
- if(videos.length&&(files.length!==1||images.length)){if(progress)progress.textContent='Une vidéo se publie seule. Pour un album, sélectionne uniquement des photos.';return}
- if(files.length&&images.length!==files.length&&!videos.length){if(progress)progress.textContent='Format photo non pris en charge.';return}
+ if(photos.some(file=>!file.type.startsWith('image/'))){if(progress)progress.textContent='Sélectionne uniquement des photos dans Ajouter des photos.';return}
+ if(video&&!video.type.startsWith('video/')){if(progress)progress.textContent='Sélectionne une vidéo dans Ajouter une vidéo.';return}
+ const videos=video?[video]:[];
+ const images=photos;
  if(submit)submit.disabled=true;
  if(progress)progress.textContent=files.length>1?'Envoi des photos (0/'+files.length+')…':files.length?'Envoi du média…':'Publication en cours…';
  try{
@@ -3308,7 +3310,7 @@ async function netchaPublierDansCercle(event,id){
   }
   if(progress)progress.textContent='Publication en cours…';
   await requeteNetcha('/api/cercles/'+id+'/publications',{method:'POST',body:JSON.stringify(payload)});
-  if(text)text.value='';if(mediaInput)mediaInput.value='';
+  if(text)text.value='';if(photosInput)photosInput.value='';if(videoInput)videoInput.value='';
   const name=document.getElementById('circlePostMediaNameNetcha');if(name)name.textContent='Jusqu’à 10 photos ou une vidéo';
   if(progress)progress.textContent='Publication publiée.';
   toast('Publication ajoutée au cercle.');
@@ -3317,7 +3319,7 @@ async function netchaPublierDansCercle(event,id){
  }catch(e){if(progress)progress.textContent=e.message||'Publication impossible.';toast(e.message||'Publication impossible.')}
  finally{if(submit)submit.disabled=false}
 }
-document.addEventListener('change',e=>{if(e.target?.id==='circlePostMediaNetcha'){const n=document.getElementById('circlePostMediaNameNetcha');const files=Array.from(e.target.files||[]);if(n)n.textContent=files.length>1?files.length+' photos sélectionnées':files[0]?.name||'Jusqu’à 10 photos ou une vidéo'}});
+document.addEventListener('change',e=>{if(e.target?.id==='circlePostPhotosNetcha'||e.target?.id==='circlePostVideoNetcha'){const n=document.getElementById('circlePostMediaNameNetcha');const photos=Array.from(document.getElementById('circlePostPhotosNetcha')?.files||[]),video=document.getElementById('circlePostVideoNetcha')?.files?.[0];if(n)n.textContent=video?video.name:photos.length?photos.length+' photo'+(photos.length>1?'s':'')+' sélectionnée'+(photos.length>1?'s':''):'Jusqu’à 10 photos ou une vidéo'}});
 
 async function netchaGererDemandesCercle(id){
  try{
