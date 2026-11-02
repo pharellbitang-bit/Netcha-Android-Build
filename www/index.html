@@ -1001,7 +1001,7 @@ body:has(#circles.active) .bottom,body:has(#circleDetail.active) .bottom{display
  <div class="netcha-pages-top"><button class="secondary" type="button" onclick="go('feed')">‹</button><div><span class="eyebrow">UNIVERS NETCHA</span><h1 class="page-title">Pages officielles</h1></div><button class="secondary" type="button" onclick="netchaChargerPages()">↻</button></div>
  <p class="muted">Pages de personnalités et organisations authentifiées. Toute demande est examinée avant l’activation du badge.</p>
  <div class="netcha-pages-search"><input id="netchaPagesSearch" type="search" placeholder="Rechercher une personnalité, une marque…" oninput="netchaProgrammerRecherchePages()"><button type="button" onclick="netchaOuvrirDemandePage()">＋ Créer une demande</button></div>
- <div id="netchaPageReviewQueue"></div><div id="netchaPagesList" class="netcha-pages-list"><p class="muted">Chargement…</p></div>
+ <div id="netchaPageReviewQueue"></div><section id="netchaMyPageRequests" class="netcha-page-composer" aria-live="polite"></section><div id="netchaPagesList" class="netcha-pages-list"><p class="muted">Chargement…</p></div>
 </section>
 <section id="officialPageDetailNetcha" class="screen netcha-page-detail-screen"><div class="netcha-pages-top"><button class="secondary" type="button" onclick="go('pages')">‹</button><div><span class="eyebrow">PAGE OFFICIELLE</span><h1 class="page-title" id="netchaPageDetailTitle">Page</h1></div><button class="secondary" type="button" onclick="netchaActualiserPageActive()">↻</button></div><div id="netchaPageDetailBody"><p class="muted">Chargement…</p></div></section>
 <section id="explore" class="screen">
@@ -3588,9 +3588,21 @@ async function netchaChargerPages(){
  const zone=document.getElementById('netchaPagesList');if(!zone||!jetonNetcha())return;
  zone.innerHTML='<p class="muted">Chargement des Pages officielles…</p>';
  try{const q=(document.getElementById('netchaPagesSearch')?.value||'').trim();const d=await requeteNetcha('/api/pages'+(q?'?q='+encodeURIComponent(q):''));const pages=d.pages||[];
+ void netchaChargerMesDemandesPage();
  zone.innerHTML=pages.map(p=>'<article class="netcha-page-card" role="button" tabindex="0" onclick="netchaOuvrirPage('+Number(p.id)+')"><div class="netcha-page-card-cover" style="'+(p.couverture_url?'background-image:url(&quot;'+echapperNetcha(mediaUrlNetcha(p.couverture_url))+'&quot;)':'')+'"></div><div class="netcha-page-card-main">'+(p.avatar_url?'<img class="netcha-page-card-avatar" src="'+echapperNetcha(mediaUrlNetcha(p.avatar_url))+'" alt="">':'<div class="netcha-page-card-avatar"></div>')+'<strong>'+echapperNetcha(p.nom)+' '+(p.badge_verifie?'<span class="netcha-page-verified">✓</span>':'')+'</strong><small>'+echapperNetcha(p.categorie)+' · '+Number(p.abonnes||0)+' abonnés</small><small>♥ '+Number(p.likes||0)+' J’aime</small></div></article>').join('')||'<p class="muted">Aucune Page officielle trouvée. Tu peux soumettre une demande.</p>';
  void netchaChargerDemandesAValider();const preview=document.getElementById('netchaOfficialPagesPreview');if(preview)preview.innerHTML=pages.slice(0,4).map(p=>'<button class="secondary" style="margin:4px;padding:9px 12px" onclick="go(\'pages\');netchaOuvrirPage('+Number(p.id)+')">'+echapperNetcha(p.nom)+' ✓</button>').join('')||'<p class="muted">Les premières Pages officielles seront affichées ici.</p>';
  }catch(e){zone.innerHTML='<p class="muted">'+echapperNetcha(e.message||'Pages indisponibles.')+'</p>'}
+}
+async function netchaChargerMesDemandesPage(){
+ const z=document.getElementById('netchaMyPageRequests');if(!z||!jetonNetcha())return;
+ try{
+  const d=await requeteNetcha('/api/pages/my-requests');const rows=d.demandes||[];
+  z.innerHTML=rows.length?'<strong>Mes demandes de Pages</strong>'+rows.map(r=>{
+   const statut=r.statut==='en_attente'?'En attente de vérification':r.statut==='approuvee'?'Approuvée':r.statut==='refusee'?'Refusée':r.statut;
+   const action=r.page_id?'<button class="secondary" type="button" onclick="netchaOuvrirPage('+Number(r.page_id)+')">Ouvrir la Page</button>':'';
+   return '<article style="padding:10px 0;border-top:1px solid var(--line)"><b>'+echapperNetcha(r.nom)+'</b><p class="muted" style="margin:5px 0">'+echapperNetcha(r.categorie)+' · '+echapperNetcha(statut)+'</p>'+(r.motif_decision?'<p>'+echapperNetcha(r.motif_decision)+'</p>':'')+action+'</article>';
+  }).join(''):'<strong>Mes demandes de Pages</strong><p class="muted" style="margin:6px 0 0">Aucune demande personnelle enregistrée sur ce compte.</p>';
+ }catch(e){z.innerHTML='<strong>Mes demandes de Pages</strong><p class="muted">Historique momentanément indisponible.</p>'}
 }
 async function netchaChargerDemandesAValider(){
  const z=document.getElementById('netchaPageReviewQueue');if(!z)return;
@@ -3617,8 +3629,14 @@ function netchaOuvrirDemandePage(){
    if(uploads[0])v.avatar_url=uploads[0];if(uploads[1])v.couverture_url=uploads[1];
    const resultat=await requeteNetcha('/api/pages/requests',{method:'POST',body:JSON.stringify(v)});
    const numero=resultat.id?' · Référence #'+resultat.id:'';
-   zone.innerHTML='<section class="netcha-page-request" role="status" aria-live="polite"><strong>✓ Demande bien reçue</strong><p>Ta demande pour « '+echapperNetcha(v.nom)+' » a été enregistrée par Netcha'+echapperNetcha(numero)+'.</p><p class="muted">Statut : en attente de vérification. Tu recevras une réponse dès que l’équipe aura examiné les informations.</p><button type="button" class="netcha-page-publish" onclick="netchaChargerPages()">Retour aux Pages officielles</button></section>';
-   toast(resultat.message||'Demande envoyée pour examen.');
+   if(resultat.statut==='existante'&&resultat.id){
+    zone.innerHTML='<section class="netcha-page-request" role="status" aria-live="polite"><strong>Cette Page existe déjà</strong><p>« '+echapperNetcha(resultat.nom||v.nom)+' » est déjà disponible sur Netcha. Aucun doublon n’a été créé.</p><button type="button" class="netcha-page-publish" onclick="netchaOuvrirPage('+Number(resultat.id)+')">Ouvrir la Page</button></section>';
+   }else{
+    const statut=resultat.statut==='approuvee'?'déjà approuvée':resultat.statut==='refusee'?'refusée':'en attente de vérification';
+    zone.innerHTML='<section class="netcha-page-request" role="status" aria-live="polite"><strong>✓ Demande retrouvée / enregistrée</strong><p>La demande pour « '+echapperNetcha(resultat.nom||v.nom)+' » existe déjà sur ce compte'+echapperNetcha(numero)+'.</p><p class="muted">Statut : '+echapperNetcha(statut)+'. Consulte « Mes demandes de Pages » pour son suivi.</p><button type="button" class="netcha-page-publish" onclick="netchaChargerPages()">Retour aux Pages officielles</button></section>';
+   }
+   void netchaChargerMesDemandesPage();
+   toast(resultat.message||'Demande vérifiée.');
   }catch(err){
    retour.className='';retour.style.color='var(--danger,#d9485f)';retour.textContent=err.message||'Envoi impossible. Vérifie les informations et réessaie.';
    btn.disabled=false;btn.textContent='Réessayer l’envoi';
