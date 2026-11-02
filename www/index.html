@@ -3602,7 +3602,15 @@ async function netchaActualiserPageActive(){
 async function netchaSuivrePage(id,follow){try{await requeteNetcha('/api/pages/'+id+(follow?'/follow':'/unfollow'),{method:'POST',body:'{}'});await netchaActualiserPageActive()}catch(e){toast(e.message)}}
 async function netchaAimerPage(id){try{await requeteNetcha('/api/pages/'+id+'/like',{method:'POST',body:'{}'});await netchaActualiserPageActive()}catch(e){toast(e.message)}}
 async function netchaReagirPublicationPage(id){try{await requeteNetcha('/api/pages/posts/'+id+'/reactions',{method:'POST',body:JSON.stringify({reaction:'j_aime'})});toast('Réaction enregistrée.')}catch(e){toast(e.message)}}
-async function netchaCommenterPublicationPage(id){const texte=prompt('Ton commentaire :');if(!texte||!texte.trim())return;try{await requeteNetcha('/api/pages/posts/'+id+'/comments',{method:'POST',body:JSON.stringify({texte})});toast('Commentaire publié.')}catch(e){toast(e.message)}}
+async function netchaCommenterPublicationPage(id){
+ const overlay=document.createElement('div');overlay.className='netcha-likes-overlay';
+ overlay.innerHTML='<section class="netcha-likes-panel" role="dialog" aria-modal="true" aria-label="Commentaires de la publication"><header><strong>Commentaires</strong><button type="button" aria-label="Fermer">×</button></header><div class="netcha-likes-list" style="max-height:48vh"><p class="muted">Chargement…</p></div><form style="display:flex;gap:8px;padding:12px;border-top:1px solid #ffffff20"><input name="texte" maxlength="2000" required placeholder="Écrire un commentaire…" style="flex:1;min-width:0;padding:10px;border-radius:12px"><button type="submit">Envoyer</button></form></section>';
+ const close=()=>overlay.remove();overlay.addEventListener('click',e=>{if(e.target===overlay)close()});overlay.querySelector('header button').onclick=close;document.body.appendChild(overlay);
+ const list=overlay.querySelector('.netcha-likes-list'),form=overlay.querySelector('form'),input=form.elements.texte,send=form.querySelector('button');
+ const refresh=async()=>{const d=await requeteNetcha('/api/pages/posts/'+id+'/comments');list.innerHTML=(d.commentaires||[]).map(c=>'<article><strong>'+echapperNetcha(c.auteur||'Membre')+'</strong><p style="white-space:pre-wrap;margin:4px 0">'+echapperNetcha(c.texte||'')+'</p><small>'+dateNetcha(c.cree_le)+'</small></article>').join('')||'<p class="muted">Aucun commentaire pour le moment.</p>'};
+ try{await refresh()}catch(e){list.innerHTML='<p class="muted">'+echapperNetcha(e.message||'Commentaires indisponibles.')+'</p>'}
+ form.onsubmit=async e=>{e.preventDefault();const texte=input.value.trim();if(!texte)return;send.disabled=true;try{await requeteNetcha('/api/pages/posts/'+id+'/comments',{method:'POST',body:JSON.stringify({texte})});input.value='';await refresh()}catch(err){toast(err.message||'Commentaire impossible.')}finally{send.disabled=false}};
+}
 async function netchaSupprimerPublicationPage(id){if(!confirm('Supprimer cette publication ?'))return;try{await requeteNetcha('/api/pages/posts/'+id+'/delete',{method:'POST',body:'{}'});await netchaActualiserPageActive()}catch(e){toast(e.message)}}
 </script>
 </body></html>
