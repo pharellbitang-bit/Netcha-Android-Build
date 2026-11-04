@@ -1,5 +1,5 @@
 name: Netcha three-person cross-country API journey
-# Re-run against isolated QA suite including phone cap checks; never target production.
+# Re-run against isolated QA suite including phone cap and legacy identity update checks; never target production.
 # Includes legacy phone-less account login, access, and recovery of missing identity fields.
 
 on:
