@@ -65,28 +65,7 @@ jobs:
           force-avd-creation: true
           disable-animations: true
           working-directory: android-webview-harness
-          script: |
-            set -o pipefail
-            adb logcat -c
-            ready=0
-            for attempt in $(seq 1 60); do
-              boot="$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\\r')"
-              package_service="$(adb shell service check package 2>&1 || true)"
-              if [ "$boot" = "1" ] && echo "$package_service" | grep -q "found"; then
-                ready=1
-                break
-              fi
-              sleep 2
-            done
-            if [ "$ready" != "1" ]; then
-              echo "Android emulator or PackageManager did not become ready"
-              adb shell getprop sys.boot_completed || true
-              adb shell service check package || true
-              adb logcat -d -t 5000 || true
-              exit 1
-            fi
-            trap 'adb logcat -d -t 12000 > ../webview-logcat.txt || true' EXIT
-            gradle --no-daemon connectedDebugAndroidTest
+          script: bash ./run-webview-tests.sh
       - name: Upload emulator diagnostics
         if: always()
         uses: actions/upload-artifact@v4
