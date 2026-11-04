@@ -18,7 +18,16 @@ permissions:
 jobs:
   android-webview:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - api-level: 29
+            android-version: "10"
+          - api-level: 35
+            android-version: "15"
+    name: "WebView Android ${{ matrix.android-version }} (API ${{ matrix.api-level }})"
     steps:
       - name: Checkout isolated Android repository
         uses: actions/checkout@v4
@@ -47,7 +56,7 @@ jobs:
       - name: Run instrumented test on Android emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: ${{ matrix.api-level }}
           target: google_apis
           arch: x86_64
           profile: pixel_2
