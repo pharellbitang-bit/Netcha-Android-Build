@@ -64,7 +64,8 @@ test('real SDK first-contact PQXDH and Double Ratchet exchange Alice -> Bob -> A
   relay.tamperNext=true;
   assert.ok(await alice.send('bob','Netcha E2EE message volontairement altéré'));
   const tamperEvent=await Promise.race([tamperError,new Promise((_,rej)=>setTimeout(()=>rej(Error('tampered ciphertext did not reach the SDK decryption-error hook')),20000))]);
-  assert.equal(tamperEvent.errorCode,'INVALID_CIPHERTEXT');
+  assert.equal(tamperEvent.errorCode,'DECRYPTION_FAILED','syntactically valid ciphertext with a modified MAC must fail authentication');
+  assert.match(tamperEvent.errorMessage,/MAC mismatch|authentication failed/i,'SDK must identify an authentication failure, not a parse failure');
   assert.equal(bobDecryptions,1,'tampered ciphertext must not produce another decrypted message');
   assert.ok(!JSON.stringify(relay.envelopes.at(-1)).includes('Netcha E2EE message volontairement altéré'),'tampered plaintext must never appear in the relay envelope');
 
