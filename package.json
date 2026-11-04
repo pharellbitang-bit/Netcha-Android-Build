@@ -11,6 +11,8 @@
     "@capacitor/core": "^7.4.3",
     "@capacitor/local-notifications": "^7.0.2",
     "@capacitor-firebase/messaging": "^7.0.1",
+    "@capacitor-community/sqlite": "7.0.3",
+    "@aparajita/capacitor-secure-storage": "7.1.6",
     "firebase": "^11.10.0"
   },
   "devDependencies": {
