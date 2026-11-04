@@ -110,3 +110,49 @@ Test commit: `e9a18d846a05853ff08d7c700bcbc6969a2a6585`.
 Important limitation: the SDK diagnostic for this mutation is `Malformed message` / invalid base64, so this verifies rejection at the ciphertext parsing boundary. It does **not yet** prove that a syntactically valid ciphertext with a modified authenticated byte is rejected by the cryptographic MAC/authentication check. That stronger test remains open. The earlier attempt that corrupted the first base64 character timed out waiting on the wrong hook; the test was corrected to observe `onDecryptionError`. No production service or user data was involved.
 
 The SDK's storage source was also inspected: it provides a React Native SQLCipher store backed by a platform keychain vault, an Expo SQLCipher/SecureStore path, and a browser IndexedDB store whose documented security caveat includes same-origin/XSS exposure. Netcha's current Capacitor app loads the remote web app, so none of these adapters is automatically a secure native store for the current app. A Capacitor-compatible encrypted persistence/key-custody design and real-device verification are still required; the in-memory fixture remains unsuitable for production.
+
+
+## Authenticated ciphertext tamper rejection (2026-11-04)
+
+The previous malformed-base64 test remains a separate parser-boundary check. A stronger test now alters one byte of the **actual 8-byte MAC** in an established-session SignalMessage while preserving the outer relay encoding and the inner base64 wire format.
+
+The test follows the SDK's documented envelope decoding: the relay payload is decoded to the inner base64 SignalMessage, the raw framed bytes are decoded, and the final MAC byte is flipped. The altered message is then passed through the public `decryptMessage` API of Bob's independent SDK client.
+
+GitHub Actions run **41856078455** passed on commit `2ce239e7555136bcada4af4b8998365c5fee380b`: **2 tests passed, 0 failed**.
+
+The SDK emitted:
+- `MAC verification failed`;
+- `DECRYPTION_FAILED`;
+- `Message authentication failed - MAC mismatch`.
+
+The test also verifies that the tampered plaintext is never delivered to Bob's application callback. This is positive evidence that the SDK's message-authentication check rejects a syntactically valid SignalMessage with a modified MAC. It is still an isolated SDK test using synthetic accounts and in-memory stores, not an audit of Netcha's production integration.
+
+Run: https://github.com/pharellbitang-bit/Netcha-Android-Build/actions/runs/41856078455
+
+## Netcha Capacitor storage integration gate
+
+The Android build repository's current `package.json` contains Capacitor 7, Firebase Messaging, and Local Notifications, but no SQLCipher database adapter or native secure-key vault. The SDK's built-in stores do not provide a drop-in Capacitor adapter:
+
+- The SDK's React Native SQLCipher store is for bare React Native/op-sqlite and react-native-keychain. It cannot be installed into this Capacitor application as-is.
+- The SDK's browser SQLCipher/OPFS store may be a candidate only if the Android WebView supports OPFS and the required worker/CSP configuration. Its default database key vault is IndexedDB on the same origin; same-origin JavaScript, including injected or XSS code, can read that key. It is therefore not sufficient as the final native key-custody boundary for Netcha.
+- The SDK's custom `SignalProtocolLocalStore` and `SignalProtocolLocalSecretVault` contracts permit an application adapter. The Capacitor path needs a native SQLCipher-backed store and a native Android Keystore/iOS Keychain-backed vault, exposed through a Capacitor plugin or a rigorously verified custom key-value backend. It must pass the SDK store conformance kit, transaction tests, wrong-key tests, and real-device process-restart tests.
+- The encrypted database must be excluded from cloud/device backup unless the corresponding vault key is safely and intentionally recoverable. Loss of the key must fail closed, never silently create a new identity over the old session.
+
+No storage plugin, native dependency, or production application file has been modified in this diagnostic branch.
+
+## Media, group, and device integration gates
+
+The SDK exposes a two-layer encrypted media workflow: local file encryption, ciphertext-only remote object storage, and a small attachment pointer whose media key and integrity metadata travel inside the E2EE message. The SDK also documents durable prepared-upload records, idempotent retries, and a remote-object-store broker. Netcha still needs an authenticated backend broker and durable client-side upload preparation store; the current test relay does not implement either. The first tests must prove that the object store sees ciphertext only, the key never reaches the backend, retries reuse the same prepared ciphertext/object identity, and a downloaded file fails integrity verification after corruption.
+
+The SDK includes sender-key/group and device-management capabilities, but the current isolated relay fixture implements only a narrow pairwise subset. It cannot validate production groups or multi-device security. Before Netcha integration, implement a separately isolated contract-level relay fixture and test:
+- three members can exchange encrypted group messages;
+- removal rotates group sender-key state and the removed member cannot decrypt future messages;
+- a newly linked device receives only the sessions and keys authorized by the device-linking protocol;
+- a revoked device cannot receive new messages after the server-side device set changes;
+- each account/device has independent local key material and encrypted persistence.
+
+## Current validation boundary
+
+Passing synthetic tests now cover first-contact pairwise exchange, reply, replay/duplicate suppression, ciphertext-only envelope assertions, concurrent in-memory prekey reservation, malformed ciphertext parsing rejection, and valid-format MAC authentication failure. These tests do **not** validate the production relay, durable database atomicity, native encrypted persistence, offline queue recovery after process death, media integration, group member removal, multi-device revocation, iOS/Android real-device behavior, XSS/CSP hardening, or an independent external security audit.
+
+The branch remains diagnostic-only. Do not merge it into the Netcha application, do not deploy it, and do not enable E2EE for users on the basis of these tests.
