@@ -64,7 +64,7 @@ test('real SDK first-contact PQXDH and Double Ratchet exchange Alice -> Bob -> A
   relay.tamperNext=true;
   assert.ok(await alice.send('bob','Netcha E2EE message volontairement altéré'));
   await assert.rejects(
-    bob.decryptMessage({userId:'alice',deviceId:1},relay.envelopes.at(-1).ciphertext),
+    bob.decryptMessage({userId:'alice',deviceId:1},Buffer.from(relay.envelopes.at(-1).ciphertext,'base64').toString('utf8')),
     error=>error.code==='DECRYPTION_FAILED' && /MAC mismatch|authentication failed/i.test(error.message),
     'a valid-format SignalMessage with one flipped MAC byte must fail cryptographic authentication'
   );
