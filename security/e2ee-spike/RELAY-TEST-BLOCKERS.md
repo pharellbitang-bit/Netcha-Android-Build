@@ -88,3 +88,13 @@ Run: https://github.com/pharellbitang-bit/Netcha-Android-Build/actions/runs/4185
 Test commit: `c41e78bd1dbf41155db9481f890652af2ce14704`.
 
 This adds evidence for duplicate-delivery/replay handling in the SDK client path and ciphertext-only pairwise envelopes. It does not prove server-side durable idempotency, atomicity under concurrent database transactions, tamper rejection, persistent storage, or production security.
+
+## Concurrent prekey reservation verification (2026-11-04)
+
+The isolated relay test now also performs two simultaneous prekey-bundle fetches for Bob after the real pairwise exchange. Both calls returned published bundles and the test asserted distinct EC and KEM one-time prekey IDs, exercising the adapter's no-double-allocation behavior under concurrent calls.
+
+GitHub Actions run **41852034241** passed: **2 tests passed, 0 failed**.
+Run: https://github.com/pharellbitang-bit/Netcha-Android-Build/actions/runs/41852034241
+Test commit: `516ab1e7f73332946b8ba372dd7b025b9f974861`.
+
+This is an in-process concurrency check of the disposable JavaScript adapter only. It is not proof of transactional atomicity in a multi-process database or production relay. Persistent-store, corruption/tamper, out-of-order delivery, offline restart, media, group, and multi-device tests remain open.
