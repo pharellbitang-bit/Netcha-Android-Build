@@ -167,3 +167,20 @@ GitHub Actions run **41856427989** passed on commit `868cb3860bcb9daed8621351171
 Run: https://github.com/pharellbitang-bit/Netcha-Android-Build/actions/runs/41856427989
 
 Scope: this verifies delayed and reversed delivery while the clients remain alive. It does not prove offline send queue persistence, process termination/restart recovery, network reconnection semantics, or durable mailbox ordering in a production relay.
+
+
+## Streaming media encryption primitive verification (2026-11-04)
+
+A separate CI test now exercises the SDK's public `streamingEncrypt` / `streamingDecrypt` functions with synthetic bytes and a 128-byte segment size, forcing multiple authenticated segments.
+
+Verified:
+- plaintext bytes are encrypted and do not appear as a contiguous byte sequence in the ciphertext;
+- the intact ciphertext decrypts to the exact original bytes;
+- flipping a byte in the final authenticated segment is rejected;
+- truncating the ciphertext is rejected.
+
+GitHub Actions run **41856662358** passed on commit `58936c21d63d65fd29a11173230e9d680c6b80d7`: **3 tests passed, 0 failed**.
+
+Run: https://github.com/pharellbitang-bit/Netcha-Android-Build/actions/runs/41856662358
+
+This validates the SDK's local streaming AEAD primitive only. It does not yet validate Netcha's media upload broker, remote object storage, attachment-key transport inside a real E2EE message, durable upload preparation/retry, Android/iOS file permissions, cache cleanup, or a real photo/video/voice message end to end.
