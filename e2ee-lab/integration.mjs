@@ -55,13 +55,21 @@ try{
  while(Date.now()<deadline&&(!b.getRoom(roomId)||!c.getRoom(roomId)))await new Promise(r=>setTimeout(r,300));
  assert(b.getRoom(roomId)&&c.getRoom(roomId),"Invitations des comptes B/C non reçues");
  await b.joinRoom(roomId);await c.joinRoom(roomId);
- await a.sendTextMessage(roomId,markers[0]);await waitFor(b,roomId,markers[0]);
+ const first=await a.sendTextMessage(roomId,markers[0]);await waitFor(b,roomId,markers[0]);
+ const beforeRaw=await a.fetchRoomEvent(roomId,first.event_id);
+ assert.equal(beforeRaw.type,"m.room.encrypted","Premier message non chiffré");
+ const beforeSession=beforeRaw.content?.session_id;
+ assert.ok(beforeSession,"Session Megolm initiale absente");
  await b.sendTextMessage(roomId,markers[1]);await waitFor(a,roomId,markers[1]);
  await a.kick(roomId,c.getUserId(),"Test retrait membre");
  const removedDeadline=Date.now()+30000;
  while(Date.now()<removedDeadline&&c.getRoom(roomId)?.getMyMembership()!=="leave")await new Promise(r=>setTimeout(r,300));
  assert.equal(c.getRoom(roomId)?.getMyMembership(),"leave","Le membre retiré n'a pas quitté le salon");
- await a.sendTextMessage(roomId,markers[2]);await waitFor(b,roomId,markers[2]);
+ const after=await a.sendTextMessage(roomId,markers[2]);await waitFor(b,roomId,markers[2]);
+ const afterRaw=await a.fetchRoomEvent(roomId,after.event_id);
+ assert.equal(afterRaw.type,"m.room.encrypted","Message après retrait non chiffré");
+ assert.ok(afterRaw.content?.session_id,"Nouvelle session Megolm absente");
+ assert.notEqual(afterRaw.content.session_id,beforeSession,"La session Megolm n'a pas changé après le retrait du membre");
  const response=await fetch(baseUrl+"/_matrix/client/v3/rooms/"+encodeURIComponent(roomId)+"/messages?dir=b&limit=50",{
   headers:{authorization:"Bearer "+a.getAccessToken()}
  });
@@ -71,7 +79,7 @@ try{
  assert(events.some(event=>event.type==="m.room.encrypted"),"Aucun événement m.room.encrypted stocké");
  console.log("PASS : messages déchiffrés dans les deux sens.");
  console.log("PASS : le homeserver stocke des événements chiffrés sans sentinelles en clair.");
- console.log("LIMITE : retrait testé au niveau de l'accès à la timeline; rotation Megolm et impossibilité de déchiffrer un ancien événement récupéré séparément non prouvées.");
+ console.log("PASS : une nouvelle session Megolm est utilisée après le retrait du membre.");
  console.log("NON TESTÉ : vérification humaine, cross-signing, sauvegarde/restauration, révocation appareil, médias, notifications et compatibilité Android WebView réelle.");
 }catch(error){console.error(error);process.exitCode=1;}
 finally{for(const c of clients){try{c.stopClient();await c.logout(true);}catch{}}}
