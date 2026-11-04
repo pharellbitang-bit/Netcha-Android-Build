@@ -48,7 +48,7 @@ A deliberately narrow test adapter can implement only the pairwise operations ac
 
 ## First end-to-end relay spike attempt (2026-11-04)
 
-A bounded, test-only in-memory relay adapter and GitHub Actions workflow were added on the diagnostics branch. The pinned SDK installed successfully and both independent clients initialized. The attempted Alice-to-Bob send produced an encrypted `prekey_bundle` envelope and the relay callback for Bob was invoked, but Bob's `onMessageDecrypted` hook did not fire before the test deadline. Therefore the reverse-direction leg was not reached and the Alice → Bob → Alice test is **FAIL / NOT VALIDATED**.
+A bounded, test-only in-memory relay adapter and GitHub Actions workflow were added on the diagnostics branch. The pinned SDK installed successfully and both independent clients initialized. The first assertion attempt was miswired: Bob's client did decrypt Alice's first-contact message, but the test associated the two clients' receive hooks with the opposite promises. The resulting timeout was a test-harness assertion defect, not evidence of a cryptographic receive failure. After correcting the hook-to-client mapping, the complete bidirectional exchange passed.
 
 Runs:
 - Initial relay attempt: https://github.com/pharellbitang-bit/Netcha-Android-Build/actions/runs/41849756336
@@ -57,3 +57,24 @@ Runs:
 - Instrumented receive attempt: https://github.com/pharellbitang-bit/Netcha-Android-Build/actions/runs/41850647027
 
 The adapter is a narrow test harness, not a complete conforming relay. It must not be used for production or cited as evidence that Netcha E2EE works. Next diagnosis must inspect the SDK's `handleRelayMessage` / receive-queue path and required envelope wire semantics, then rerun until both decrypt hooks assert the exact payload in both directions. The local memory store also reports no encryption-at-rest protection; this is acceptable only for disposable synthetic CI fixtures and is not evidence of secure persistent storage.
+
+
+## Successful bidirectional exchange (2026-11-04)
+
+GitHub Actions run **41851358871** completed successfully on commit `9bf885c9d7dce5e7aa8a212626dc6398103d3131`.
+
+Verified in the isolated CI process using SDK `@open-e2ee/signal-protocol-sdk@14.0.0` and two separate client stores:
+
+1. Alice sent the first-contact message to Bob. Bob's real SDK `onMessageDecrypted` hook received the exact expected plaintext.
+2. Bob replied using the established session. Alice's real SDK `onMessageDecrypted` hook received the exact expected reply.
+3. The relay recorded the envelopes, and assertions confirmed that neither test plaintext string appeared in the encoded ciphertext.
+4. CI completed with **2 tests passed, 0 failed**.
+
+Run: https://github.com/pharellbitang-bit/Netcha-Android-Build/actions/runs/41851358871
+
+Scope and limits:
+- This validates the SDK's pairwise first-contact and reply cryptographic path through a disposable in-memory test relay.
+- It does not validate a production relay, persistent/encrypted local storage, browser/Android/iOS integration, group sender keys, media encryption, device linking/revocation, offline recovery, or independent security audit.
+- The SDK emitted its explicit warning that the test's in-memory store has no encryption at rest and content recovery is disabled. It is acceptable only for synthetic CI test data.
+- No Netcha production backend, production database, user conversations, or Railway deployment was changed.
+- This passing test is **not** approval to enable E2EE in production.
