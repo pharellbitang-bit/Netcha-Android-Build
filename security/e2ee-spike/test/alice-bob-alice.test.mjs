@@ -24,8 +24,8 @@ class IsolatedMemoryRelay {
   async getEcSignedPreKeyMetadata(u,d,t='aci'){const x=this.inventory(u,d,t);return x.ecSignedPreKey?this.meta(x.ecSignedPreKey):null}
   async getKemLastResortPreKeyMetadata(u,d,t='aci'){const x=this.inventory(u,d,t);return x.kemLastResortPreKey?this.meta(x.kemLastResortPreKey):null}
   async clearStaleKemPreKeys(u,d,t='aci'){const x=this.inventory(u,d,t),n=x.kemOneTimePreKey.length;x.kemOneTimePreKey=[];return {cleared:n}}
-  async send(e){const copy=structuredClone(e);this.envelopes.push(copy);const id='test-envelope-'+(++this.nextId),stamp=Date.now(),delivered={...copy,id,serverTimestamp:stamp},cb=this.listeners.get(this.key(e.targetUserId,e.targetDeviceId));if(cb)queueMicrotask(()=>Promise.resolve(cb(delivered)).catch(err=>{this.deliveryError=err}));return {messageId:id,serverTimestamp:stamp,deviceSetChecked:true}}
-  subscribe(u,d,cb){const k=this.key(u,d);this.listeners.set(k,cb);return ()=>this.listeners.delete(k)}
+  async send(e){const copy=structuredClone(e);console.log('RELAY_SEND',e.targetUserId,e.targetDeviceId,e.messageType,'listeners',Array.from(this.listeners.keys()));this.envelopes.push(copy);const id='test-envelope-'+(++this.nextId),stamp=Date.now(),delivered={...copy,id,serverTimestamp:stamp},cb=this.listeners.get(this.key(e.targetUserId,e.targetDeviceId));if(cb)queueMicrotask(()=>Promise.resolve(cb(delivered)).catch(err=>{this.deliveryError=err}));return {messageId:id,serverTimestamp:stamp,deviceSetChecked:true}}
+  subscribe(u,d,cb){const k=this.key(u,d);console.log('RELAY_SUBSCRIBE',k);this.listeners.set(k,cb);return ()=>this.listeners.delete(k)}
   subscribeRelayConnectionState(){return ()=>{}}
   async markDelivered(){}
 }
@@ -38,7 +38,7 @@ test('real SDK first-contact PQXDH and Double Ratchet exchange Alice -> Bob -> A
   t.after(async()=>{await alice.stop();await bob.stop()});
   await alice.startRelaySubscription();await bob.startRelaySubscription();
   assert.ok(await alice.send('bob','Netcha E2EE Alice vers Bob'));
-  assert.equal(await Promise.race([bobReceived,new Promise((_,rej)=>setTimeout(()=>rej(Error('Bob did not decrypt first-contact message')),20000))]),'Netcha E2EE Alice vers Bob');
+  assert.equal(await Promise.race([bobReceived,new Promise((_,rej)=>setTimeout(()=>rej(Error('Bob did not decrypt first-contact message; envelopes='+relay.envelopes.length+'; deliveryError='+String(relay.deliveryError))),20000))]),'Netcha E2EE Alice vers Bob');
   assert.ok(await bob.send('alice','Netcha E2EE Bob vers Alice'));
   assert.equal(await Promise.race([aliceReceived,new Promise((_,rej)=>setTimeout(()=>rej(Error('Alice did not decrypt reply')),20000))]),'Netcha E2EE Bob vers Alice');
   assert.ok(relay.envelopes.length>=2);
