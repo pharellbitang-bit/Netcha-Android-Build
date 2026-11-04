@@ -37,6 +37,25 @@ Do not reuse one key for the SQLCipher database and the SDK store encryption. Ne
 - `.github/workflows/storage-native-compile.yml` generates an Android project on GitHub Actions, syncs native plugins, checks native registration, and compiles a debug APK. It does not publish or deploy that APK.
 - No SDK adapter code, database schema, account keys, user data, production API route, or Railway setting has been changed.
 
+## SDK transaction API compatibility finding
+
+The pinned SDK 14.0.0 key-value contract has asynchronous storage methods, but its convenience helper `createTransactionalKeyValueBackend` expects a synchronous `KeyValueTransaction` handle inside an engine transaction callback. The Capacitor SQLite plugin 7.0.3 exposes asynchronous bridge methods (`beginTransaction`, `query`, `run`, `commitTransaction`, `rollbackTransaction`); it does not expose the synchronous `executeSync` connection used by the SDK's op-sqlite example.
+
+Therefore, do **not** pass Capacitor SQLite through the SDK's `createTransactionalKeyValueBackend` by pretending its API is synchronous. The viable experiment is a purpose-built `KeyValueStorage` implementation that uses the plugin's asynchronous transaction API directly and implements the SDK's complete `atomicWrite` operation semantics. It must:
+
+- serialize all operations through one exclusive connection/queue;
+- start one native SQL transaction for every `atomicWrite`;
+- evaluate all `check` compare-and-swap guards against pre-batch state before writes;
+- apply `set`, `remove`, `pruneSkippedSenderKeys`, `removeSessionsForUser`, and `removeSenderKeyHandoffs` in order, with later operations seeing earlier writes;
+- rollback the entire transaction on any failed check, SQL error, plugin error, or process interruption;
+- resolve only after the native commit completes;
+- implement `getItem`, `setItem`, `removeItem`, `getAllKeys`, and `removeMany` consistently with that same queue;
+- pass `assertBackendConformance` with `reopen` support, then run added race, interruption, wrong-key, and physical-device restart tests.
+
+This custom backend duplicates part of the SDK's batch semantics, so it must be pinned to SDK 14.0.0 and re-reviewed whenever the SDK changes. It is not implemented yet.
+
+The vault can be a small wrapper over the Capacitor SecureStorage plugin's string `getItem`/`setItem`/`removeItem` methods, encoding the SDK's `Uint8Array` secret as a strictly validated hex or base64 string. Configure iOS device-only Keychain access and no iCloud synchronization; verify Android Keystore-backed encryption and backup behavior on-device. The SQLite plugin's own database passphrase and the SDK's separate 32-byte value-encryption key must remain distinct.
+
 ## Compile gate versus security gate
 
 The new workflow can establish only that the pinned native plugins resolve, register, and compile together with the current Capacitor 7 wrapper. A successful APK build is not proof that:
