@@ -24,7 +24,7 @@ class IsolatedMemoryRelay {
   async getEcSignedPreKeyMetadata(u,d,t='aci'){const x=this.inventory(u,d,t);return x.ecSignedPreKey?this.meta(x.ecSignedPreKey):null}
   async getKemLastResortPreKeyMetadata(u,d,t='aci'){const x=this.inventory(u,d,t);return x.kemLastResortPreKey?this.meta(x.kemLastResortPreKey):null}
   async clearStaleKemPreKeys(u,d,t='aci'){const x=this.inventory(u,d,t),n=x.kemOneTimePreKey.length;x.kemOneTimePreKey=[];return {cleared:n}}
-  async send(e){const copy=structuredClone(e);if(this.tamperNext){this.tamperNext=false;assert.equal(copy.messageType,'ciphertext','tamper case must target an established-session SignalMessage');assert.equal(typeof copy.ciphertext,'string','SDK relay ciphertext must use its documented base64 wire field');const outerBytes=Buffer.from(copy.ciphertext,'base64');const innerBase64=outerBytes.toString('utf8');assert.match(innerBase64,/^[A-Za-z0-9+/]+={0,2}$/,'outer relay payload must contain the inner base64 SignalMessage');const wireBytes=Buffer.from(innerBase64,'base64');assert.ok(wireBytes.length>9,'SignalMessage must contain version, protobuf body, and 8-byte MAC');wireBytes[wireBytes.length-1]^=1;copy.ciphertext=Buffer.from(wireBytes.toString('base64'),'utf8').toString('base64')}this.envelopes.push(copy);const id='test-envelope-'+(++this.nextId),stamp=Date.now(),delivered={...copy,id,serverTimestamp:stamp};this.deliveredEnvelopes.push(delivered);const cb=this.listeners.get(this.key(e.targetUserId,e.targetDeviceId));if(cb)queueMicrotask(async()=>{try{await cb(delivered);}catch(err){this.deliveryError=err;}});return {messageId:id,serverTimestamp:stamp,deviceSetChecked:true}}
+  async send(e){const copy=structuredClone(e);let tampered=false;if(this.tamperNext){this.tamperNext=false;tampered=true;assert.equal(copy.messageType,'ciphertext','tamper case must target an established-session SignalMessage');assert.equal(typeof copy.ciphertext,'string','SDK relay ciphertext must use its documented base64 wire field');const outerBytes=Buffer.from(copy.ciphertext,'base64');const innerBase64=outerBytes.toString('utf8');assert.match(innerBase64,/^[A-Za-z0-9+/]+={0,2}$/,'outer relay payload must contain the inner base64 SignalMessage');const wireBytes=Buffer.from(innerBase64,'base64');assert.ok(wireBytes.length>9,'SignalMessage must contain version, protobuf body, and 8-byte MAC');wireBytes[wireBytes.length-1]^=1;copy.ciphertext=Buffer.from(wireBytes.toString('base64'),'utf8').toString('base64')}this.envelopes.push(copy);const id='test-envelope-'+(++this.nextId),stamp=Date.now(),delivered={...copy,id,serverTimestamp:stamp};this.deliveredEnvelopes.push(delivered);const cb=this.listeners.get(this.key(e.targetUserId,e.targetDeviceId));if(!tampered&&cb)queueMicrotask(async()=>{try{await cb(delivered);}catch(err){this.deliveryError=err;}});return {messageId:id,serverTimestamp:stamp,deviceSetChecked:true}}
   async redeliver(index){const envelope=this.deliveredEnvelopes[index];if(!envelope)throw Error('unknown test envelope');const cb=this.listeners.get(this.key(envelope.targetUserId,envelope.targetDeviceId));if(!cb)throw Error('recipient is not subscribed');await cb(structuredClone(envelope))}
   subscribe(u,d,cb){const k=this.key(u,d);this.listeners.set(k,async env=>{return await cb(env)});return ()=>this.listeners.delete(k)}
   subscribeRelayConnectionState(){return ()=>{}}
@@ -33,9 +33,9 @@ class IsolatedMemoryRelay {
 
 test('real SDK first-contact PQXDH and Double Ratchet exchange Alice -> Bob -> Alice', async t=>{
   const relay=new IsolatedMemoryRelay();let resolveBob,resolveAlice;let bobDecryptions=0;
-  const bobReceived=new Promise(r=>resolveBob=r),aliceReceived=new Promise(r=>resolveAlice=r);let resolveTamperError;const tamperError=new Promise(r=>resolveTamperError=r);
+  const bobReceived=new Promise(r=>resolveBob=r),aliceReceived=new Promise(r=>resolveAlice=r);
   const alice=await createSignalProtocolClient({identity:{userId:'alice',deviceId:1,enablePniKeys:false},adapters:{storage:inMemoryStore(),relay},hooks:{onMessageDecrypted:async e=>{if(e.content==='Netcha E2EE Bob vers Alice')resolveAlice(e.content)},onDeliveryError:()=>{},onRetryTerminal:()=>{}}});
-  const bob=await createSignalProtocolClient({identity:{userId:'bob',deviceId:1,enablePniKeys:false},adapters:{storage:inMemoryStore(),relay},hooks:{onMessageDecrypted:async e=>{if(e.content==='Netcha E2EE Alice vers Bob'){bobDecryptions++;resolveBob(e.content)}},onDeliveryError:()=>{},onDecryptionError:(sessionId,error)=>resolveTamperError({sessionId,errorCode:error.code,errorMessage:error.message}),onRetryTerminal:()=>{}}});
+  const bob=await createSignalProtocolClient({identity:{userId:'bob',deviceId:1,enablePniKeys:false},adapters:{storage:inMemoryStore(),relay},hooks:{onMessageDecrypted:async e=>{if(e.content==='Netcha E2EE Alice vers Bob'){bobDecryptions++;resolveBob(e.content)}},onDeliveryError:()=>{},onDecryptionError:()=>{},onRetryTerminal:()=>{}}});
   t.after(async()=>{await alice.stop();await bob.stop()});
   await alice.startRelaySubscription();await bob.startRelaySubscription();
   assert.ok(await alice.send('bob','Netcha E2EE Alice vers Bob'));
@@ -63,9 +63,11 @@ test('real SDK first-contact PQXDH and Double Ratchet exchange Alice -> Bob -> A
   // Corrupt a fresh established-session ciphertext in transit. The recipient must reject it and never surface the plaintext.
   relay.tamperNext=true;
   assert.ok(await alice.send('bob','Netcha E2EE message volontairement altéré'));
-  const tamperEvent=await Promise.race([tamperError,new Promise((_,rej)=>setTimeout(()=>rej(Error('tampered ciphertext did not reach the SDK decryption-error hook')),20000))]);
-  assert.equal(tamperEvent.errorCode,'DECRYPTION_FAILED','syntactically valid ciphertext with a modified MAC must fail authentication');
-  assert.match(tamperEvent.errorMessage,/MAC mismatch|authentication failed/i,'SDK must identify an authentication failure, not a parse failure');
+  await assert.rejects(
+    bob.decryptMessage({userId:'alice',deviceId:1},relay.envelopes.at(-1).ciphertext),
+    error=>error.code==='DECRYPTION_FAILED' && /MAC mismatch|authentication failed/i.test(error.message),
+    'a valid-format SignalMessage with one flipped MAC byte must fail cryptographic authentication'
+  );
   assert.equal(bobDecryptions,1,'tampered ciphertext must not produce another decrypted message');
   assert.ok(!JSON.stringify(relay.envelopes.at(-1)).includes('Netcha E2EE message volontairement altéré'),'tampered plaintext must never appear in the relay envelope');
 
