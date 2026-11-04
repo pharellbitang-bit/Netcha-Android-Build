@@ -98,3 +98,15 @@ Run: https://github.com/pharellbitang-bit/Netcha-Android-Build/actions/runs/4185
 Test commit: `516ab1e7f73332946b8ba372dd7b025b9f974861`.
 
 This is an in-process concurrency check of the disposable JavaScript adapter only. It is not proof of transactional atomicity in a multi-process database or production relay. Persistent-store, corruption/tamper, out-of-order delivery, offline restart, media, group, and multi-device tests remain open.
+
+## Malformed ciphertext rejection (2026-11-04)
+
+The isolated pairwise test now mutates an outgoing synthetic ciphertext in the relay and observes the SDK's `onDecryptionError` callback. The SDK reports `INVALID_CIPHERTEXT`; the test confirms that Bob's decrypted-message callback is not invoked a second time and that the mutated relay envelope contains no test plaintext.
+
+GitHub Actions run **41853290693** passed: **2 tests passed, 0 failed**.
+Run: https://github.com/pharellbitang-bit/Netcha-Android-Build/actions/runs/41853290693
+Test commit: `e9a18d846a05853ff08d7c700bcbc6969a2a6585`.
+
+Important limitation: the SDK diagnostic for this mutation is `Malformed message` / invalid base64, so this verifies rejection at the ciphertext parsing boundary. It does **not yet** prove that a syntactically valid ciphertext with a modified authenticated byte is rejected by the cryptographic MAC/authentication check. That stronger test remains open. The earlier attempt that corrupted the first base64 character timed out waiting on the wrong hook; the test was corrected to observe `onDecryptionError`. No production service or user data was involved.
+
+The SDK's storage source was also inspected: it provides a React Native SQLCipher store backed by a platform keychain vault, an Expo SQLCipher/SecureStore path, and a browser IndexedDB store whose documented security caveat includes same-origin/XSS exposure. Netcha's current Capacitor app loads the remote web app, so none of these adapters is automatically a secure native store for the current app. A Capacitor-compatible encrypted persistence/key-custody design and real-device verification are still required; the in-memory fixture remains unsuitable for production.
