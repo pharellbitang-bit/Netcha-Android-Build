@@ -1,5 +1,5 @@
 name: Netcha three-person cross-country API journey
-# Re-run against isolated QA suite including 108 synthetic accounts and end-to-end encryption canary; never target production.
+# Re-run isolated 108-user matrix after correcting the 50-conversation listing cap; includes E2EE canary, never production.
 # Includes legacy phone-less account login, access, and recovery of missing identity fields.
 
 on:
