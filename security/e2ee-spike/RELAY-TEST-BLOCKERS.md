@@ -184,3 +184,12 @@ GitHub Actions run **41856662358** passed on commit `58936c21d63d65fd29a11173230
 Run: https://github.com/pharellbitang-bit/Netcha-Android-Build/actions/runs/41856662358
 
 This validates the SDK's local streaming AEAD primitive only. It does not yet validate Netcha's media upload broker, remote object storage, attachment-key transport inside a real E2EE message, durable upload preparation/retry, Android/iOS file permissions, cache cleanup, or a real photo/video/voice message end to end.
+
+
+## Group and multi-device implementation boundary (source review)
+
+The SDK's group manager is not just a sender-key helper. Its `GroupServer` contract requires encrypted group creation, versioned group snapshots, authorized paginated change logs, and optimistic-concurrency group-change submissions. The server validates zero-knowledge membership presentations and signs accepted state transitions; the client verifies those signatures and applies changes. Removing or banning a member requires a durable accepted group-state revision and a sender-key rotation barrier before future group sends proceed. A fake that only broadcasts sender-key ciphertext would omit these authorization and state-integrity guarantees.
+
+The SDK's managed linked-device flow is also more than adding a second device row. `linkHostedRelayDevice()` requires the account identity to be transferred to an empty linked-device store through an application-owned secure channel, and the calling process must hold both the active and linked stores so it can sign both device-authentication challenges. The Relay allocates linked IDs (2–5); each device has its own prekeys and sessions. Group master keys are copied locally by the linking process, not sent to the Relay. Account recovery/revocation must be enforced by the authenticated Relay device registry.
+
+These contracts are not implemented by the current narrow in-memory pairwise fixture. A group/device test must use a dedicated contract-level fixture that exercises server-side authorization, signed state revisions, group key rotation, device-link proofs, and revocation. Until that fixture exists, the group and multi-device items remain **not tested**, not merely pending a UI connection.
