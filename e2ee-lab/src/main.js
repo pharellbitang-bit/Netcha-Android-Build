@@ -1,4 +1,5 @@
 import * as sdk from "matrix-js-sdk";
+document.documentElement.dataset.matrixSdkLoaded = "true";
 const $ = id => document.getElementById(id);
 let client;
 const log = value => { $("log").textContent += "\n" + value; };
