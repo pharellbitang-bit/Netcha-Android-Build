@@ -50,4 +50,13 @@ test('real SDK first-contact PQXDH and Double Ratchet exchange Alice -> Bob -> A
   assert.equal(relay.envelopes[1].messageType,'ciphertext');
   for(const e of relay.envelopes){const serialized=JSON.stringify(e);assert.ok(!serialized.includes('Netcha E2EE Alice vers Bob'));assert.ok(!serialized.includes('Netcha E2EE Bob vers Alice'))}
   assert.ok(relay.acknowledged.has(relay.deliveredEnvelopes[0].id),'Bob must acknowledge the delivered first-contact envelope');
+
+  // Exercise concurrent one-time prekey reservation on the disposable relay.
+  const [bundleOne,bundleTwo]=await Promise.all([
+    relay.fetchPreKeyBundle('bob',1,'alice'),
+    relay.fetchPreKeyBundle('bob',1,'alice'),
+  ]);
+  assert.ok(bundleOne && bundleTwo,'Bob must have published authentic prekey bundles');
+  assert.notEqual(bundleOne.ecOneTimePreKey?.keyId,bundleTwo.ecOneTimePreKey?.keyId,'concurrent fetches must not receive the same EC one-time prekey');
+  assert.notEqual(bundleOne.kemOneTimePreKey?.keyId,bundleTwo.kemOneTimePreKey?.keyId,'concurrent fetches must not receive the same KEM one-time prekey');
 });
