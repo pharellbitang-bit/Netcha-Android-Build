@@ -63,11 +63,13 @@ test('real SDK first-contact PQXDH and Double Ratchet exchange Alice -> Bob -> A
   // Corrupt a fresh established-session ciphertext in transit. The recipient must reject it and never surface the plaintext.
   relay.tamperNext=true;
   assert.ok(await alice.send('bob','Netcha E2EE message volontairement altéré'));
-  await assert.rejects(
-    bob.decryptMessage({userId:'alice',deviceId:1},Buffer.from(relay.envelopes.at(-1).ciphertext,'base64').toString('utf8')),
-    error=>error.code==='DECRYPTION_FAILED' && /MAC mismatch|authentication failed/i.test(error.message),
-    'a valid-format SignalMessage with one flipped MAC byte must fail cryptographic authentication'
-  );
+  const macFailure=await Promise.race([
+    bob.decryptMessage({userId:'alice',deviceId:1},Buffer.from(relay.envelopes.at(-1).ciphertext,'base64').toString('utf8'))
+      .then(()=>{throw Error('tampered SignalMessage was unexpectedly decrypted')},error=>error),
+    new Promise((_,reject)=>setTimeout(()=>reject(Error('direct MAC verification did not settle within 10 seconds')),10000))
+  ]);
+  assert.equal(macFailure.code,'DECRYPTION_FAILED','valid-format MAC corruption must be classified as an authentication failure');
+  assert.match(macFailure.message,/MAC mismatch|authentication failed/i);
   assert.equal(bobDecryptions,1,'tampered ciphertext must not produce another decrypted message');
   assert.ok(!JSON.stringify(relay.envelopes.at(-1)).includes('Netcha E2EE message volontairement altéré'),'tampered plaintext must never appear in the relay envelope');
 
