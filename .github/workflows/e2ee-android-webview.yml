@@ -62,6 +62,7 @@ jobs:
           profile: pixel_2
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
           emulator-boot-timeout: 900
+          force-avd-creation: true
           disable-animations: true
           working-directory: android-webview-harness
           script: gradle --no-daemon connectedDebugAndroidTest
