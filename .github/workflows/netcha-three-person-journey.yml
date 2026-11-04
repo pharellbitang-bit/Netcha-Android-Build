@@ -1,6 +1,6 @@
 name: Netcha three-person cross-country API journey
 # Re-run against the latest isolated QA test suite; never target production.
-# Includes the official-page verification guard regression fix.
+# Includes the official-page verification guard and test-only media signing key.
 
 on:
   workflow_dispatch:
@@ -36,6 +36,8 @@ jobs:
       PORT: 8003
       PYTHONUNBUFFERED: "1"
       NETCHA_MARKETPLACE_ENABLED: "true"
+      # Disposable test-only secret; never reused in production.
+      NETCHA_MEDIA_SIGNING_SECRET: "netcha-isolated-qa-media-signing-secret-2026"
     steps:
       - name: Checkout public Android runner repository
         uses: actions/checkout@v4
