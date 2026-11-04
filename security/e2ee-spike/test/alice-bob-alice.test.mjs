@@ -32,10 +32,10 @@ class IsolatedMemoryRelay {
 }
 
 test('real SDK first-contact PQXDH and Double Ratchet exchange Alice -> Bob -> Alice', async t=>{
-  const relay=new IsolatedMemoryRelay();let resolveBob,resolveAlice;let bobDecryptions=0;
-  const bobReceived=new Promise(r=>resolveBob=r),aliceReceived=new Promise(r=>resolveAlice=r);let resolveOutOfOrder;const outOfOrderReceived=new Promise(r=>resolveOutOfOrder=r);const outOfOrderMessages=[];
+  const relay=new IsolatedMemoryRelay();let resolveBob,resolveAlice,resolveOffline;let bobDecryptions=0;
+  const bobReceived=new Promise(r=>resolveBob=r),aliceReceived=new Promise(r=>resolveAlice=r),offlineReceived=new Promise(r=>resolveOffline=r);let resolveOutOfOrder;const outOfOrderReceived=new Promise(r=>resolveOutOfOrder=r);const outOfOrderMessages=[];
   const alice=await createSignalProtocolClient({identity:{userId:'alice',deviceId:1,enablePniKeys:false},adapters:{storage:inMemoryStore(),relay},hooks:{onMessageDecrypted:async e=>{if(e.content==='Netcha E2EE Bob vers Alice')resolveAlice(e.content)},onDeliveryError:()=>{},onRetryTerminal:()=>{}}});
-  const bob=await createSignalProtocolClient({identity:{userId:'bob',deviceId:1,enablePniKeys:false},adapters:{storage:inMemoryStore(),relay},hooks:{onMessageDecrypted:async e=>{if(e.content==='Netcha E2EE Alice vers Bob'){bobDecryptions++;resolveBob(e.content)}if(e.content==='Netcha E2EE ordre 1'||e.content==='Netcha E2EE ordre 2'){outOfOrderMessages.push(e.content);if(outOfOrderMessages.length===2)resolveOutOfOrder([...outOfOrderMessages])}},onDeliveryError:()=>{},onDecryptionError:()=>{},onRetryTerminal:()=>{}}});
+  const bob=await createSignalProtocolClient({identity:{userId:'bob',deviceId:1,enablePniKeys:false},adapters:{storage:inMemoryStore(),relay},hooks:{onMessageDecrypted:async e=>{if(e.content==='Netcha E2EE Alice vers Bob'){bobDecryptions++;resolveBob(e.content)}if(e.content==='Netcha E2EE remis après reconnexion'){bobDecryptions++;resolveOffline(e.content)}if(e.content==='Netcha E2EE ordre 1'||e.content==='Netcha E2EE ordre 2'){outOfOrderMessages.push(e.content);if(outOfOrderMessages.length===2)resolveOutOfOrder([...outOfOrderMessages])}},onDeliveryError:()=>{},onDecryptionError:()=>{},onRetryTerminal:()=>{}}});
   t.after(async()=>{await alice.stop();await bob.stop()});
   await alice.startRelaySubscription();await bob.startRelaySubscription();
   assert.ok(await alice.send('bob','Netcha E2EE Alice vers Bob'));
@@ -83,5 +83,18 @@ test('real SDK first-contact PQXDH and Double Ratchet exchange Alice -> Bob -> A
   assert.match(macFailure.message,/MAC mismatch|authentication failed/i);
   assert.equal(bobDecryptions,1,'tampered ciphertext must not produce another decrypted message');
   assert.ok(!JSON.stringify(relay.envelopes.at(-1)).includes('Netcha E2EE message volontairement altéré'),'tampered plaintext must never appear in the relay envelope');
+
+  // Simulate recipient temporarily unavailable at the relay delivery layer.
+  // This is intentionally NOT a process-death or durable-mailbox test.
+  relay.holdDelivery=true;
+  const beforeOfflineDelivery=bobDecryptions;
+  assert.ok(await alice.send('bob','Netcha E2EE remis après reconnexion'));
+  assert.equal(bobDecryptions,beforeOfflineDelivery,'the recipient must not decrypt while relay delivery is held');
+  assert.ok(!relay.acknowledged.has(relay.deliveredEnvelopes.at(-1).id),'the held envelope must remain unacknowledged');
+  relay.holdDelivery=false;
+  await relay.redeliver(relay.deliveredEnvelopes.length-1);
+  assert.equal(await Promise.race([offlineReceived,new Promise((_,rej)=>setTimeout(()=>rej(Error('held offline envelope was not decrypted after reconnection')),15000))]),'Netcha E2EE remis après reconnexion');
+  assert.ok(relay.acknowledged.has(relay.deliveredEnvelopes.at(-1).id),'the recipient must acknowledge the envelope after successful decryption');
+  assert.ok(!JSON.stringify(relay.envelopes.at(-1)).includes('Netcha E2EE remis après reconnexion'),'the delayed relay envelope must contain ciphertext only');
 
 });
