@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "vite build",
+    "build": "vite build --base=/assets/e2ee-lab/",
     "test:e2ee": "node integration.mjs"
   },
   "dependencies": {
