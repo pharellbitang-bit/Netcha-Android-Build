@@ -58,7 +58,7 @@ test('real SDK first-contact PQXDH and Double Ratchet exchange Alice -> Bob -> A
   relay.holdDelivery=false;
   const laterDelivery=relay.redeliver(3);
   await relay.redeliver(2);
-  await laterDelivery;
+  await Promise.race([laterDelivery,new Promise((_,rej)=>setTimeout(()=>rej(Error('later out-of-order delivery did not settle')),10000))]);
   const reordered=await Promise.race([outOfOrderReceived,new Promise((_,rej)=>setTimeout(()=>rej(Error('out-of-order messages were not both decrypted')),20000))]);
   assert.deepEqual(new Set(reordered),new Set(['Netcha E2EE ordre 1','Netcha E2EE ordre 2']),'both messages must decrypt despite reverse delivery');
 
