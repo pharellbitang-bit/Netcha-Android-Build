@@ -156,3 +156,14 @@ The SDK includes sender-key/group and device-management capabilities, but the cu
 Passing synthetic tests now cover first-contact pairwise exchange, reply, replay/duplicate suppression, ciphertext-only envelope assertions, concurrent in-memory prekey reservation, malformed ciphertext parsing rejection, and valid-format MAC authentication failure. These tests do **not** validate the production relay, durable database atomicity, native encrypted persistence, offline queue recovery after process death, media integration, group member removal, multi-device revocation, iOS/Android real-device behavior, XSS/CSP hardening, or an independent external security audit.
 
 The branch remains diagnostic-only. Do not merge it into the Netcha application, do not deploy it, and do not enable E2EE for users on the basis of these tests.
+
+
+## Out-of-order pairwise delivery verification (2026-11-04)
+
+The isolated pairwise test now holds two consecutive Alice-to-Bob established-session envelopes, delivers the later envelope first, then delivers the earlier envelope. Bob's SDK client successfully surfaces both exact plaintexts. This exercises the SDK's skipped-message-key / out-of-order receive path with synthetic users and the disposable in-memory relay.
+
+GitHub Actions run **41856427989** passed on commit `868cb3860bcb9daed862135117176237969c7fd1`: **2 tests passed, 0 failed**.
+
+Run: https://github.com/pharellbitang-bit/Netcha-Android-Build/actions/runs/41856427989
+
+Scope: this verifies delayed and reversed delivery while the clients remain alive. It does not prove offline send queue persistence, process termination/restart recovery, network reconnection semantics, or durable mailbox ordering in a production relay.
