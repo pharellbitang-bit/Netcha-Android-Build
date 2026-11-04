@@ -44,3 +44,16 @@ The required first-contact relay operations include:
 - group state/change-log and credential methods in the full required interface, even though group capability is not needed for the narrow two-user test.
 
 A deliberately narrow test adapter can implement only the pairwise operations actually invoked by the selected client configuration, but it must be labelled as a test harness with explicit unsupported methods; it must not be described as a fully conforming production relay. The next step is to map the exact method calls made during two-client registration, first-contact, delivery, and reply, then implement and type-check that bounded test adapter against SDK 14.0.0. If the SDK's public composition path prevents that without reaching into private fields, stop and document the blocker rather than bypassing encapsulation.
+
+
+## First end-to-end relay spike attempt (2026-11-04)
+
+A bounded, test-only in-memory relay adapter and GitHub Actions workflow were added on the diagnostics branch. The pinned SDK installed successfully and both independent clients initialized. The attempted Alice-to-Bob send produced an encrypted `prekey_bundle` envelope and the relay callback for Bob was invoked, but Bob's `onMessageDecrypted` hook did not fire before the test deadline. Therefore the reverse-direction leg was not reached and the Alice → Bob → Alice test is **FAIL / NOT VALIDATED**.
+
+Runs:
+- Initial relay attempt: https://github.com/pharellbitang-bit/Netcha-Android-Build/actions/runs/41849756336
+- Corrected prekey fetch signature: https://github.com/pharellbitang-bit/Netcha-Android-Build/actions/runs/41849881948
+- Envelope-ID delivery attempt: https://github.com/pharellbitang-bit/Netcha-Android-Build/actions/runs/41850070478
+- Instrumented receive attempt: https://github.com/pharellbitang-bit/Netcha-Android-Build/actions/runs/41850647027
+
+The adapter is a narrow test harness, not a complete conforming relay. It must not be used for production or cited as evidence that Netcha E2EE works. Next diagnosis must inspect the SDK's `handleRelayMessage` / receive-queue path and required envelope wire semantics, then rerun until both decrypt hooks assert the exact payload in both directions. The local memory store also reports no encryption-at-rest protection; this is acceptable only for disposable synthetic CI fixtures and is not evidence of secure persistent storage.
