@@ -14,11 +14,12 @@ Le workflow `E2EE Android isolated lab` construit le client web isolé, puis dé
 - déchiffrement d'un message A vers B ;
 - déchiffrement d'un message B vers A ;
 - présence d'événements `m.room.encrypted` côté homeserver et absence des textes sentinelles dans les événements consultés ;
-- retrait d'un troisième membre et accès du membre restant aux messages envoyés après le retrait.
+- retrait d'un troisième membre et accès du membre restant aux messages envoyés après le retrait ;
+- comparaison du `session_id` Megolm avant/après le retrait pour vérifier qu'une nouvelle session est utilisée.
 
 ## Limites explicites
 
-Le test de retrait ne prouve pas à lui seul la rotation cryptographique Megolm ni l'impossibilité de déchiffrer un ancien événement récupéré séparément. Les vérifications humaines, le cross-signing, la sauvegarde et récupération des clés, la révocation d'appareil, les médias chiffrés, la confidentialité des notifications et la compatibilité réelle avec Android System WebView restent à tester.
+La comparaison du `session_id` confirme le renouvellement de session après le retrait dans ce scénario de laboratoire. Elle ne prouve pas encore, à elle seule, l'impossibilité pour l'ancien membre de déchiffrer un ciphertext post-retrait récupéré séparément. Les vérifications humaines, le cross-signing, la sauvegarde et récupération des clés, la révocation d'appareil, les médias chiffrés, la confidentialité des notifications et la compatibilité réelle avec Android System WebView restent à tester.
 
 La page de laboratoire peut être exécutée dans un navigateur Android pour un premier essai manuel, mais cela ne constitue pas une validation sur l'APK ni une intégration à la messagerie Netcha.
 
