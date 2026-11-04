@@ -34,6 +34,10 @@ public final class MainActivity extends Activity {
         webView.loadUrl("https://appassets.androidplatform.net/assets/webview-smoke.html");
     }
 
+    WebView getWebViewForTest() {
+        return webView;
+    }
+
     @Override
     protected void onDestroy() {
         if (webView != null) {
