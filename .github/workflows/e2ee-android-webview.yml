@@ -44,7 +44,7 @@ jobs:
         working-directory: e2ee-lab
         run: |
           npm install --no-audit --no-fund
-          npm run build
+          npm run build -- --base=/assets/e2ee-lab/
       - name: Package browser lab into isolated Android test assets
         run: |
           mkdir -p android-webview-harness/app/src/main/assets/e2ee-lab
