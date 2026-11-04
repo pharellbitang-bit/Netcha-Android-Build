@@ -83,6 +83,10 @@ jobs:
         working-directory: netcha-source
         run: python -m unittest tests.test_three_person_release_gates -v
 
+      - name: Verify legacy identity completion form contract
+        working-directory: netcha-source
+        run: python -m unittest tests.test_legacy_identity_ui_contract -v
+
       - name: Compile Netcha backend
         working-directory: netcha-source
         run: python -m compileall -q backend
