@@ -8,8 +8,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import static androidx.test.espresso.web.sugar.Web.onWebView;
 import static androidx.test.espresso.web.webdriver.DriverAtoms.findElement;
+import static androidx.test.espresso.web.webdriver.DriverAtoms.getText;
 import static androidx.test.espresso.web.assertion.WebViewAssertions.webMatches;
-import static androidx.test.espresso.web.matcher.DomMatchers.getText;
 import static org.hamcrest.Matchers.containsString;
 
 @RunWith(AndroidJUnit4.class)
