@@ -1,0 +1,56 @@
+name: E2EE Android WebView compatibility
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "e2ee-lab/**"
+      - "android-webview-harness/**"
+      - ".github/workflows/e2ee-android-webview.yml"
+  push:
+    branches:
+      - "security/e2ee-android-lab"
+    paths:
+      - "e2ee-lab/**"
+      - "android-webview-harness/**"
+      - ".github/workflows/e2ee-android-webview.yml"
+permissions:
+  contents: read
+jobs:
+  android-webview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout isolated Android repository
+        uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Build the Matrix browser lab
+        working-directory: e2ee-lab
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+      - name: Package browser lab into isolated Android test assets
+        run: |
+          mkdir -p android-webview-harness/app/src/main/assets/e2ee-lab
+          cp -R e2ee-lab/dist/. android-webview-harness/app/src/main/assets/e2ee-lab/
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: Run instrumented test on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          working-directory: android-webview-harness
+          script: gradle --no-daemon connectedDebugAndroidTest
