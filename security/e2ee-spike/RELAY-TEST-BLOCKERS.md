@@ -31,7 +31,6 @@ A test that simply calls `encryptMessage` on two freshly initialized clients can
 
 The SDK maintainer states that the project has not undergone an independent external security audit and is not affiliated with Signal Messenger or wire-compatible with Signal Messenger/libsignal. This prototype must not be represented as independently audited or production-ready.
 
-
 ## Additional verification: SDK relay implementation availability
 
 The upstream v14.0.0 source tree contains the relay interface and client-side transport contracts under `remote/relay/`, but no bundled in-memory relay server, mock relay server, or reference server implementation. The relay README explicitly says the published package contains client transports and contracts, not a relay server implementation.
@@ -45,7 +44,6 @@ The required first-contact relay operations include:
 
 A deliberately narrow test adapter can implement only the pairwise operations actually invoked by the selected client configuration, but it must be labelled as a test harness with explicit unsupported methods; it must not be described as a fully conforming production relay. The next step is to map the exact method calls made during two-client registration, first-contact, delivery, and reply, then implement and type-check that bounded test adapter against SDK 14.0.0. If the SDK's public composition path prevents that without reaching into private fields, stop and document the blocker rather than bypassing encapsulation.
 
-
 ## First end-to-end relay spike attempt (2026-11-04)
 
 A bounded, test-only in-memory relay adapter and GitHub Actions workflow were added on the diagnostics branch. The pinned SDK installed successfully and both independent clients initialized. The first assertion attempt was miswired: Bob's client did decrypt Alice's first-contact message, but the test associated the two clients' receive hooks with the opposite promises. The resulting timeout was a test-harness assertion defect, not evidence of a cryptographic receive failure. After correcting the hook-to-client mapping, the complete bidirectional exchange passed.
@@ -56,8 +54,7 @@ Runs:
 - Envelope-ID delivery attempt: https://github.com/pharellbitang-bit/Netcha-Android-Build/actions/runs/41850070478
 - Instrumented receive attempt: https://github.com/pharellbitang-bit/Netcha-Android-Build/actions/runs/41850647027
 
-The adapter is a narrow test harness, not a complete conforming relay. It must not be used for production or cited as evidence that Netcha E2EE works. Next diagnosis must inspect the SDK's `handleRelayMessage` / receive-queue path and required envelope wire semantics, then rerun until both decrypt hooks assert the exact payload in both directions. The local memory store also reports no encryption-at-rest protection; this is acceptable only for disposable synthetic CI fixtures and is not evidence of secure persistent storage.
-
+The adapter is a narrow test harness, not a complete conforming relay. It must not be used for production or cited as evidence that Netcha E2EE works. Next diagnosis must inspect the SDK's `handleRelayMessage` / receive-queue path and required envelope wire semantics, then rerun until both decrypt hooks assert the exact payload in both directions. The local memory store also reports no encryption at rest protection; this is acceptable only for disposable synthetic CI fixtures and is not evidence of secure persistent storage.
 
 ## Successful bidirectional exchange (2026-11-04)
 
@@ -111,7 +108,6 @@ Important limitation: the SDK diagnostic for this mutation is `Malformed message
 
 The SDK's storage source was also inspected: it provides a React Native SQLCipher store backed by a platform keychain vault, an Expo SQLCipher/SecureStore path, and a browser IndexedDB store whose documented security caveat includes same-origin/XSS exposure. Netcha's current Capacitor app loads the remote web app, so none of these adapters is automatically a secure native store for the current app. A Capacitor-compatible encrypted persistence/key-custody design and real-device verification are still required; the in-memory fixture remains unsuitable for production.
 
-
 ## Authenticated ciphertext tamper rejection (2026-11-04)
 
 The previous malformed-base64 test remains a separate parser-boundary check. A stronger test now alters one byte of the **actual 8-byte MAC** in an established-session SignalMessage while preserving the outer relay encoding and the inner base64 wire format.
@@ -157,17 +153,14 @@ Passing synthetic tests now cover first-contact pairwise exchange, reply, replay
 
 The branch remains diagnostic-only. Do not merge it into the Netcha application, do not deploy it, and do not enable E2EE for users on the basis of these tests.
 
-
 ## Out-of-order pairwise delivery verification (2026-11-04)
 
 The isolated pairwise test now holds two consecutive Alice-to-Bob established-session envelopes, delivers the later envelope first, then delivers the earlier envelope. Bob's SDK client successfully surfaces both exact plaintexts. This exercises the SDK's skipped-message-key / out-of-order receive path with synthetic users and the disposable in-memory relay.
 
 GitHub Actions run **41856427989** passed on commit `868cb3860bcb9daed862135117176237969c7fd1`: **2 tests passed, 0 failed**.
-
 Run: https://github.com/pharellbitang-bit/Netcha-Android-Build/actions/runs/41856427989
 
 Scope: this verifies delayed and reversed delivery while the clients remain alive. It does not prove offline send queue persistence, process termination/restart recovery, network reconnection semantics, or durable mailbox ordering in a production relay.
-
 
 ## Streaming media encryption primitive verification (2026-11-04)
 
@@ -180,11 +173,9 @@ Verified:
 - truncating the ciphertext is rejected.
 
 GitHub Actions run **41856662358** passed on commit `58936c21d63d65fd29a11173230e9d680c6b80d7`: **3 tests passed, 0 failed**.
-
 Run: https://github.com/pharellbitang-bit/Netcha-Android-Build/actions/runs/41856662358
 
 This validates the SDK's local streaming AEAD primitive only. It does not yet validate Netcha's media upload broker, remote object storage, attachment-key transport inside a real E2EE message, durable upload preparation/retry, Android/iOS file permissions, cache cleanup, or a real photo/video/voice message end to end.
-
 
 ## Group and multi-device implementation boundary (source review)
 
@@ -193,3 +184,15 @@ The SDK's group manager is not just a sender-key helper. Its `GroupServer` contr
 The SDK's managed linked-device flow is also more than adding a second device row. `linkHostedRelayDevice()` requires the account identity to be transferred to an empty linked-device store through an application-owned secure channel, and the calling process must hold both the active and linked stores so it can sign both device-authentication challenges. The Relay allocates linked IDs (2–5); each device has its own prekeys and sessions. Group master keys are copied locally by the linking process, not sent to the Relay. Account recovery/revocation must be enforced by the authenticated Relay device registry.
 
 These contracts are not implemented by the current narrow in-memory pairwise fixture. A group/device test must use a dedicated contract-level fixture that exercises server-side authorization, signed state revisions, group key rotation, device-link proofs, and revocation. Until that fixture exists, the group and multi-device items remain **not tested**, not merely pending a UI connection.
+
+## Held delivery while recipient is temporarily unavailable (2026-11-04)
+
+The isolated pairwise test now pauses relay delivery while Alice sends an established-session encrypted message. It verifies Bob receives no plaintext and sends no acknowledgement while delivery is held. The test then resumes delivery and explicitly redelivers the held envelope; Bob receives the exact plaintext, and the acknowledgement occurs only after successful decryption. The serialized relay envelope is also checked to contain no test plaintext.
+
+GitHub Actions run **41857919727** completed successfully: **2 tests passed, 0 failed**.
+Run: https://github.com/pharellbitang-bit/Netcha-Android-Build/actions/runs/41857919727
+
+The independent runner-allocation/bootstrap diagnostic also completed successfully: run **41857919947**.
+Run: https://github.com/pharellbitang-bit/Netcha-Android-Build/actions/runs/41857919947
+
+This proves only a held-and-resumed delivery scenario in a single in-memory test process. It does **not** prove a durable server mailbox, application process death/restart, background delivery, real network reconnect, push-triggered retrieval, or offline outbox persistence. Production remains untouched; the diagnostics branch is not merge/deploy ready and E2EE must remain disabled for users.
