@@ -24,7 +24,7 @@ class IsolatedMemoryRelay {
   async getEcSignedPreKeyMetadata(u,d,t='aci'){const x=this.inventory(u,d,t);return x.ecSignedPreKey?this.meta(x.ecSignedPreKey):null}
   async getKemLastResortPreKeyMetadata(u,d,t='aci'){const x=this.inventory(u,d,t);return x.kemLastResortPreKey?this.meta(x.kemLastResortPreKey):null}
   async clearStaleKemPreKeys(u,d,t='aci'){const x=this.inventory(u,d,t),n=x.kemOneTimePreKey.length;x.kemOneTimePreKey=[];return {cleared:n}}
-  async send(e){const copy=structuredClone(e);this.envelopes.push(copy);const id='test-envelope-'+(++this.nextId),cb=this.listeners.get(this.key(e.targetUserId,e.targetDeviceId));if(cb)queueMicrotask(()=>Promise.resolve(cb(copy)).catch(err=>{this.deliveryError=err}));return {messageId:id,serverTimestamp:Date.now(),deviceSetChecked:true}}
+  async send(e){const copy=structuredClone(e);this.envelopes.push(copy);const id='test-envelope-'+(++this.nextId),stamp=Date.now(),delivered={...copy,id,serverTimestamp:stamp},cb=this.listeners.get(this.key(e.targetUserId,e.targetDeviceId));if(cb)queueMicrotask(()=>Promise.resolve(cb(delivered)).catch(err=>{this.deliveryError=err}));return {messageId:id,serverTimestamp:stamp,deviceSetChecked:true}}
   subscribe(u,d,cb){const k=this.key(u,d);this.listeners.set(k,cb);return ()=>this.listeners.delete(k)}
   subscribeRelayConnectionState(){return ()=>{}}
   async markDelivered(){}
