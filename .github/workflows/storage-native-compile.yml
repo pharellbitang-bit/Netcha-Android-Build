@@ -34,6 +34,20 @@ jobs:
       - name: Install pinned Capacitor plugins
         run: npm install
 
+      - name: Verify exact native-storage dependency and encryption configuration
+        run: |
+          npm ls @capacitor-community/sqlite@7.0.3 @aparajita/capacitor-secure-storage@7.1.6
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const cfg = JSON.parse(fs.readFileSync('capacitor.config.json', 'utf8'));
+          if (pkg.dependencies['@capacitor-community/sqlite'] !== '7.0.3') throw new Error('SQLite plugin version is not pinned');
+          if (pkg.dependencies['@aparajita/capacitor-secure-storage'] !== '7.1.6') throw new Error('SecureStorage plugin version is not pinned');
+          if (cfg.plugins?.CapacitorSQLite?.androidIsEncryption !== true || cfg.plugins?.CapacitorSQLite?.iosIsEncryption !== true) throw new Error('SQLCipher encryption flags are not enabled for both platforms');
+          if (!cfg.plugins?.SecureStorage) throw new Error('SecureStorage plugin is not registered in Capacitor config');
+          console.log('Exact plugin pins and native encryption configuration verified.');
+          JS
+
       - name: Generate isolated Android project
         run: npx cap add android
 
