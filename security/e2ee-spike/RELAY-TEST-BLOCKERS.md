@@ -78,3 +78,13 @@ Scope and limits:
 - The SDK emitted its explicit warning that the test's in-memory store has no encryption at rest and content recovery is disabled. It is acceptable only for synthetic CI test data.
 - No Netcha production backend, production database, user conversations, or Railway deployment was changed.
 - This passing test is **not** approval to enable E2EE in production.
+
+## Replay and relay-payload verification (2026-11-04)
+
+The pairwise test was extended to replay the exact same delivered envelope, retaining its server-assigned envelope ID. The SDK logged `replay-detected` for the already processed ratchet counter, and the test confirmed Bob's plaintext callback remained at exactly one invocation. The test also asserts that the first leg is `prekey_bundle`, the reply is `ciphertext`, the serialized relay envelopes contain neither test plaintext, and the recipient acknowledged the initial envelope.
+
+GitHub Actions run **41851864865** passed: **2 tests passed, 0 failed**.
+Run: https://github.com/pharellbitang-bit/Netcha-Android-Build/actions/runs/41851864865
+Test commit: `c41e78bd1dbf41155db9481f890652af2ce14704`.
+
+This adds evidence for duplicate-delivery/replay handling in the SDK client path and ciphertext-only pairwise envelopes. It does not prove server-side durable idempotency, atomicity under concurrent database transactions, tamper rejection, persistent storage, or production security.
