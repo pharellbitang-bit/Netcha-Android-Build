@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Netcha E2EE WebView smoke test</title>
+</head>
+<body>
+  <h1>Netcha — test WebView E2EE</h1>
+  <p id="status">RUNNING: vérification des capacités WebView…</p>
+  <ul id="checks"></ul>
+  <iframe id="lab" title="Laboratoire Matrix" src="/assets/e2ee-lab/index.html"
+          style="width:1px;height:1px;border:0"></iframe>
+  <script>
+    (() => {
+      const checks = {
+        secureContext: window.isSecureContext === true,
+        webCrypto: !!(window.crypto && window.crypto.subtle),
+        webAssembly: typeof window.WebAssembly === "object",
+        indexedDB: typeof window.indexedDB === "object"
+      };
+      const list = document.getElementById("checks");
+      for (const [name, passed] of Object.entries(checks)) {
+        const item = document.createElement("li");
+        item.id = "check-" + name;
+        item.textContent = name + ": " + (passed ? "PASS" : "FAIL");
+        list.appendChild(item);
+      }
+      document.getElementById("lab").addEventListener("load", event => {
+        const doc = event.target.contentDocument;
+        const sdkLoaded = !!doc && doc.documentElement.dataset.matrixSdkLoaded === "true";
+        const controlsPresent = !!doc && !!doc.getElementById("connect")
+          && !!doc.getElementById("homeserver") && !!doc.getElementById("log");
+        for (const [name, passed] of Object.entries({
+          matrixSdkModule: sdkLoaded, labControls: controlsPresent
+        })) {
+          const item = document.createElement("li");
+          item.id = "check-" + name;
+          item.textContent = name + ": " + (passed ? "PASS" : "FAIL");
+          list.appendChild(item);
+          checks[name] = passed;
+        }
+        const allPassed = Object.values(checks).every(Boolean);
+        document.getElementById("status").textContent = allPassed
+          ? "PASS: WebView compatible avec le chargement du laboratoire Matrix."
+          : "FAIL: une ou plusieurs capacités WebView manquent.";
+        document.documentElement.dataset.testResult = allPassed ? "pass" : "fail";
+      });
+    })();
+  </script>
+</body>
+</html>
