@@ -5,7 +5,7 @@ import { inMemoryStore } from '@open-e2ee/signal-protocol-sdk/local/store/memory
 
 class IsolatedMemoryRelay {
   devices = new Map([['alice',[{deviceId:1,registered:true,linked:false,enabled:true}]],['bob',[{deviceId:1,registered:true,linked:false,enabled:true}]]]);
-  identities = new Map(); inventories = new Map(); listeners = new Map(); envelopes = []; deliveredEnvelopes = []; acknowledged = new Set(); nextId=0;
+  identities = new Map(); inventories = new Map(); listeners = new Map(); envelopes = []; deliveredEnvelopes = []; acknowledged = new Set(); nextId=0; tamperNext=false;
   relayConnectionState={state:'connected',since:Date.now()};
   key(u,d,t='aci'){return u+':'+d+':'+t}
   inventory(u,d,t='aci'){const k=this.key(u,d,t);if(!this.inventories.has(k))this.inventories.set(k,{ecSignedPreKey:null,kemLastResortPreKey:null,ecPreKey:[],kemOneTimePreKey:[]});return this.inventories.get(k)}
@@ -24,7 +24,7 @@ class IsolatedMemoryRelay {
   async getEcSignedPreKeyMetadata(u,d,t='aci'){const x=this.inventory(u,d,t);return x.ecSignedPreKey?this.meta(x.ecSignedPreKey):null}
   async getKemLastResortPreKeyMetadata(u,d,t='aci'){const x=this.inventory(u,d,t);return x.kemLastResortPreKey?this.meta(x.kemLastResortPreKey):null}
   async clearStaleKemPreKeys(u,d,t='aci'){const x=this.inventory(u,d,t),n=x.kemOneTimePreKey.length;x.kemOneTimePreKey=[];return {cleared:n}}
-  async send(e){const copy=structuredClone(e);this.envelopes.push(copy);const id='test-envelope-'+(++this.nextId),stamp=Date.now(),delivered={...copy,id,serverTimestamp:stamp};this.deliveredEnvelopes.push(delivered);const cb=this.listeners.get(this.key(e.targetUserId,e.targetDeviceId));if(cb)queueMicrotask(async()=>{try{await cb(delivered);}catch(err){this.deliveryError=err;}});return {messageId:id,serverTimestamp:stamp,deviceSetChecked:true}}
+  async send(e){const copy=structuredClone(e);if(this.tamperNext){this.tamperNext=false;if(typeof copy.ciphertext==='string'){const first=copy.ciphertext[0];copy.ciphertext=(first==='A'?'B':'A')+copy.ciphertext.slice(1)}else{copy.ciphertext=new Uint8Array(copy.ciphertext);copy.ciphertext[0]^=1}}this.envelopes.push(copy);const id='test-envelope-'+(++this.nextId),stamp=Date.now(),delivered={...copy,id,serverTimestamp:stamp};this.deliveredEnvelopes.push(delivered);const cb=this.listeners.get(this.key(e.targetUserId,e.targetDeviceId));if(cb)queueMicrotask(async()=>{try{await cb(delivered);}catch(err){this.deliveryError=err;}});return {messageId:id,serverTimestamp:stamp,deviceSetChecked:true}}
   async redeliver(index){const envelope=this.deliveredEnvelopes[index];if(!envelope)throw Error('unknown test envelope');const cb=this.listeners.get(this.key(envelope.targetUserId,envelope.targetDeviceId));if(!cb)throw Error('recipient is not subscribed');await cb(structuredClone(envelope))}
   subscribe(u,d,cb){const k=this.key(u,d);this.listeners.set(k,async env=>{return await cb(env)});return ()=>this.listeners.delete(k)}
   subscribeRelayConnectionState(){return ()=>{}}
@@ -33,9 +33,9 @@ class IsolatedMemoryRelay {
 
 test('real SDK first-contact PQXDH and Double Ratchet exchange Alice -> Bob -> Alice', async t=>{
   const relay=new IsolatedMemoryRelay();let resolveBob,resolveAlice;let bobDecryptions=0;
-  const bobReceived=new Promise(r=>resolveBob=r),aliceReceived=new Promise(r=>resolveAlice=r);
+  const bobReceived=new Promise(r=>resolveBob=r),aliceReceived=new Promise(r=>resolveAlice=r);let resolveTamperError;const tamperError=new Promise(r=>resolveTamperError=r);
   const alice=await createSignalProtocolClient({identity:{userId:'alice',deviceId:1,enablePniKeys:false},adapters:{storage:inMemoryStore(),relay},hooks:{onMessageDecrypted:async e=>{if(e.content==='Netcha E2EE Bob vers Alice')resolveAlice(e.content)},onDeliveryError:()=>{},onRetryTerminal:()=>{}}});
-  const bob=await createSignalProtocolClient({identity:{userId:'bob',deviceId:1,enablePniKeys:false},adapters:{storage:inMemoryStore(),relay},hooks:{onMessageDecrypted:async e=>{if(e.content==='Netcha E2EE Alice vers Bob'){bobDecryptions++;resolveBob(e.content)}},onDeliveryError:()=>{},onRetryTerminal:()=>{}}});
+  const bob=await createSignalProtocolClient({identity:{userId:'bob',deviceId:1,enablePniKeys:false},adapters:{storage:inMemoryStore(),relay},hooks:{onMessageDecrypted:async e=>{if(e.content==='Netcha E2EE Alice vers Bob'){bobDecryptions++;resolveBob(e.content)}},onDeliveryError:e=>resolveTamperError(e),onRetryTerminal:()=>{}}});
   t.after(async()=>{await alice.stop();await bob.stop()});
   await alice.startRelaySubscription();await bob.startRelaySubscription();
   assert.ok(await alice.send('bob','Netcha E2EE Alice vers Bob'));
@@ -59,4 +59,12 @@ test('real SDK first-contact PQXDH and Double Ratchet exchange Alice -> Bob -> A
   assert.ok(bundleOne && bundleTwo,'Bob must have published authentic prekey bundles');
   assert.notEqual(bundleOne.ecOneTimePreKey?.keyId,bundleTwo.ecOneTimePreKey?.keyId,'concurrent fetches must not receive the same EC one-time prekey');
   assert.notEqual(bundleOne.kemOneTimePreKey?.keyId,bundleTwo.kemOneTimePreKey?.keyId,'concurrent fetches must not receive the same KEM one-time prekey');
+
+  // Corrupt a fresh established-session ciphertext in transit. The recipient must reject it and never surface the plaintext.
+  relay.tamperNext=true;
+  assert.ok(await alice.send('bob','Netcha E2EE message volontairement altéré'));
+  const tamperEvent=await Promise.race([tamperError,new Promise((_,rej)=>setTimeout(()=>rej(Error('tampered envelope did not reach the SDK delivery-error hook')),20000))]);
+  assert.equal(tamperEvent.senderUserId,'alice');
+  assert.equal(bobDecryptions,1,'tampered ciphertext must not produce another decrypted message');
+
 });
