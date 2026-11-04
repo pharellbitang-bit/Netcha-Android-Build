@@ -1,5 +1,5 @@
 name: Netcha three-person cross-country API journey
-# Re-run against the latest isolated QA test suite; never target production.
+# Re-run against isolated QA suite including phone cap checks; never target production.
 # Includes legacy phone-less account login, access, and recovery of missing identity fields.
 
 on:
@@ -101,6 +101,10 @@ jobs:
           done
           cat /tmp/netcha-three-person.log
           exit 1
+
+      - name: Verify phone cap and country calling code on disposable database
+        working-directory: netcha-source
+        run: python tests/test_phone_cap_api.py
 
       - name: Execute three-person journey (CM, CM, CI)
         working-directory: netcha-source
