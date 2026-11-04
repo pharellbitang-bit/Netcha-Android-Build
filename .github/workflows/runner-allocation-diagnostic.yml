@@ -6,6 +6,7 @@ on:
       - diagnostics/github-runner-allocation
     paths:
       - ".github/workflows/runner-allocation-diagnostic.yml"
+      - "security/e2ee-spike/**"
 
 permissions:
   contents: read
@@ -20,3 +21,9 @@ jobs:
           echo "RUNNER_ALLOCATED=ubuntu-latest"
           uname -a
           node --version
+      - name: Install isolated E2EE SDK dependency
+        working-directory: security/e2ee-spike
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run isolated E2EE bootstrap test
+        working-directory: security/e2ee-spike
+        run: npm test
