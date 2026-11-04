@@ -1,0 +1,114 @@
+name: Netcha three-person cross-country API journey
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - qa/three-person-runner-2026-11-04
+    paths:
+      - ".github/workflows/netcha-three-person-journey.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  three-person-journey:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: netcha_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d netcha_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/netcha_test
+      PORT: 8003
+      PYTHONUNBUFFERED: "1"
+      NETCHA_MARKETPLACE_ENABLED: "true"
+    steps:
+      - name: Checkout public Android runner repository
+        uses: actions/checkout@v4
+
+      - name: Require private Netcha read token (never use production)
+        env:
+          PRIVATE_REPO_TOKEN: ${{ secrets.NETCHA_PRIVATE_REPO_READ_TOKEN }}
+        run: |
+          if [ -z "$PRIVATE_REPO_TOKEN" ]; then
+            echo "::error::Missing repository secret NETCHA_PRIVATE_REPO_READ_TOKEN. Add a read-only token with Contents: Read access to pharellbitang-bit/Netcha, then rerun this workflow."
+            exit 1
+          fi
+
+      - name: Checkout private Netcha backend and isolated QA scenario
+        uses: actions/checkout@v4
+        with:
+          repository: pharellbitang-bit/Netcha
+          ref: qa/three-person-cross-country-2026-11-04
+          token: ${{ secrets.NETCHA_PRIVATE_REPO_READ_TOKEN }}
+          path: netcha-source
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Install Netcha backend dependencies
+        working-directory: netcha-source
+        run: python -m pip install --upgrade pip && python -m pip install -r requirements.txt
+
+      - name: Initialize disposable PostgreSQL database
+        working-directory: netcha-source
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/schema.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/migration_20261014.sql
+
+      - name: Run static release gates
+        working-directory: netcha-source
+        run: python -m unittest tests.test_three_person_release_gates -v
+
+      - name: Compile Netcha backend
+        working-directory: netcha-source
+        run: python -m compileall -q backend
+
+      - name: Start Netcha API against disposable PostgreSQL only
+        working-directory: netcha-source
+        run: |
+          python -u -m backend.app > /tmp/netcha-three-person.log 2>&1 &
+          echo $! > /tmp/netcha-three-person.pid
+          for i in $(seq 1 90); do
+            if curl --fail --silent http://127.0.0.1:8003/health >/dev/null; then
+              echo "Isolated Netcha API is healthy"
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/netcha-three-person.log
+          exit 1
+
+      - name: Execute three-person journey (CM, CM, CI)
+        working-directory: netcha-source
+        run: python tests/three_person_cross_country_journey.py
+
+      - name: Print isolated API log on failure
+        if: failure()
+        run: cat /tmp/netcha-three-person.log || true
+
+      - name: Stop isolated API
+        if: always()
+        run: |
+          if [ -f /tmp/netcha-three-person.pid ]; then
+            kill "$(cat /tmp/netcha-three-person.pid)" 2>/dev/null || true
+          fi
