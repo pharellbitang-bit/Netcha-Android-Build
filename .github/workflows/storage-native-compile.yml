@@ -1,0 +1,55 @@
+name: Capacitor 7 encrypted-storage native compile gate
+
+on:
+  push:
+    branches: [diagnostics/github-runner-allocation]
+    paths:
+      - 'package.json'
+      - 'capacitor.config.json'
+      - '.github/workflows/storage-native-compile.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-native-compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout diagnostic branch
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install pinned Capacitor plugins
+        run: npm install
+
+      - name: Generate isolated Android project
+        run: npx cap add android
+
+      - name: Sync native plugins
+        run: npx cap sync android
+
+      - name: Verify SQLCipher and secure-storage plugin registration
+        run: |
+          test -d android/app/src/main
+          grep -R -q 'CapacitorSQLite' android/app/src/main
+          grep -R -q 'SecureStorage' android/app/src/main
+          echo 'Native plugin registration sources found.'
+
+      - name: Compile debug APK (no release or deployment)
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
