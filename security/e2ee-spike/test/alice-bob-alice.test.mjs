@@ -33,8 +33,8 @@ class IsolatedMemoryRelay {
 test('real SDK first-contact PQXDH and Double Ratchet exchange Alice -> Bob -> Alice', async t=>{
   const relay=new IsolatedMemoryRelay();let resolveBob,resolveAlice;
   const bobReceived=new Promise(r=>resolveBob=r),aliceReceived=new Promise(r=>resolveAlice=r);
-  const alice=await createSignalProtocolClient({identity:{userId:'alice',deviceId:1,enablePniKeys:false},adapters:{storage:inMemoryStore(),relay},hooks:{onMessageDecrypted:async e=>{if(e.content==='Netcha E2EE Alice vers Bob')resolveBob(e.content)},onDeliveryError:e=>,onRetryTerminal:e=>}});
-  const bob=await createSignalProtocolClient({identity:{userId:'bob',deviceId:1,enablePniKeys:false},adapters:{storage:inMemoryStore(),relay},hooks:{onMessageDecrypted:async e=>{if(e.content==='Netcha E2EE Bob vers Alice')resolveAlice(e.content)},onDeliveryError:e=>,onRetryTerminal:e=>}});
+  const alice=await createSignalProtocolClient({identity:{userId:'alice',deviceId:1,enablePniKeys:false},adapters:{storage:inMemoryStore(),relay},hooks:{onMessageDecrypted:async e=>{if(e.content==='Netcha E2EE Bob vers Alice')resolveAlice(e.content)},onDeliveryError:()=>{},onRetryTerminal:()=>{}}});
+  const bob=await createSignalProtocolClient({identity:{userId:'bob',deviceId:1,enablePniKeys:false},adapters:{storage:inMemoryStore(),relay},hooks:{onMessageDecrypted:async e=>{if(e.content==='Netcha E2EE Alice vers Bob')resolveBob(e.content)},onDeliveryError:e=>,onRetryTerminal:e=>}});
   t.after(async()=>{await alice.stop();await bob.stop()});
   await alice.startRelaySubscription();await bob.startRelaySubscription();
   assert.ok(await alice.send('bob','Netcha E2EE Alice vers Bob'));
