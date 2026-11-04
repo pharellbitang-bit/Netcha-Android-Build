@@ -24,8 +24,8 @@ class IsolatedMemoryRelay {
   async getEcSignedPreKeyMetadata(u,d,t='aci'){const x=this.inventory(u,d,t);return x.ecSignedPreKey?this.meta(x.ecSignedPreKey):null}
   async getKemLastResortPreKeyMetadata(u,d,t='aci'){const x=this.inventory(u,d,t);return x.kemLastResortPreKey?this.meta(x.kemLastResortPreKey):null}
   async clearStaleKemPreKeys(u,d,t='aci'){const x=this.inventory(u,d,t),n=x.kemOneTimePreKey.length;x.kemOneTimePreKey=[];return {cleared:n}}
-  async send(e){const copy=structuredClone(e);console.log('RELAY_SEND',e.targetUserId,e.targetDeviceId,e.messageType,'listeners',Array.from(this.listeners.keys()));this.envelopes.push(copy);const id='test-envelope-'+(++this.nextId),stamp=Date.now(),delivered={...copy,id,serverTimestamp:stamp},cb=this.listeners.get(this.key(e.targetUserId,e.targetDeviceId));if(cb)queueMicrotask(()=>Promise.resolve(cb(delivered)).catch(err=>{this.deliveryError=err}));return {messageId:id,serverTimestamp:stamp,deviceSetChecked:true}}
-  subscribe(u,d,cb){const k=this.key(u,d);console.log('RELAY_SUBSCRIBE',k);this.listeners.set(k,cb);return ()=>this.listeners.delete(k)}
+  async send(e){const copy=structuredClone(e);console.log('RELAY_SEND',e.targetUserId,e.targetDeviceId,e.messageType,'listeners',Array.from(this.listeners.keys()));this.envelopes.push(copy);const id='test-envelope-'+(++this.nextId),stamp=Date.now(),delivered={...copy,id,serverTimestamp:stamp},cb=this.listeners.get(this.key(e.targetUserId,e.targetDeviceId));if(cb)queueMicrotask(async()=>{console.log('RELAY_DISPATCH',id);try{await cb(delivered);console.log('RELAY_DISPATCH_DONE',id)}catch(err){this.deliveryError=err;console.log('RELAY_DISPATCH_ERROR',String(err))}});return {messageId:id,serverTimestamp:stamp,deviceSetChecked:true}}
+  subscribe(u,d,cb){const k=this.key(u,d);console.log('RELAY_SUBSCRIBE',k);this.listeners.set(k,async env=>{console.log('RELAY_CALLBACK',k,env.id,env.messageType);return await cb(env)});return ()=>this.listeners.delete(k)}
   subscribeRelayConnectionState(){return ()=>{}}
   async markDelivered(){}
 }
