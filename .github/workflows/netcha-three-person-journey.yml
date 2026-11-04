@@ -1,5 +1,6 @@
 name: Netcha three-person cross-country API journey
 # Re-run against the latest isolated QA test suite; never target production.
+# Includes the official-page verification guard regression fix.
 
 on:
   workflow_dispatch:
