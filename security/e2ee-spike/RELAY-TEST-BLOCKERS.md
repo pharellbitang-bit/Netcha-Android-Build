@@ -30,3 +30,17 @@ A test that simply calls `encryptMessage` on two freshly initialized clients can
 ## Security note
 
 The SDK maintainer states that the project has not undergone an independent external security audit and is not affiliated with Signal Messenger or wire-compatible with Signal Messenger/libsignal. This prototype must not be represented as independently audited or production-ready.
+
+
+## Additional verification: SDK relay implementation availability
+
+The upstream v14.0.0 source tree contains the relay interface and client-side transport contracts under `remote/relay/`, but no bundled in-memory relay server, mock relay server, or reference server implementation. The relay README explicitly says the published package contains client transports and contracts, not a relay server implementation.
+
+The required first-contact relay operations include:
+- `send`, `subscribe`, `markDelivered`, and connection-state observation;
+- device registration/listing/removal;
+- canonical account identity provisioning, lookup, and compare-and-swap rotation;
+- upload, inventory, count, fetch, and atomic one-time EC/KEM prekey consumption;
+- group state/change-log and credential methods in the full required interface, even though group capability is not needed for the narrow two-user test.
+
+A deliberately narrow test adapter can implement only the pairwise operations actually invoked by the selected client configuration, but it must be labelled as a test harness with explicit unsupported methods; it must not be described as a fully conforming production relay. The next step is to map the exact method calls made during two-client registration, first-contact, delivery, and reply, then implement and type-check that bounded test adapter against SDK 14.0.0. If the SDK's public composition path prevents that without reaching into private fields, stop and document the blocker rather than bypassing encapsulation.
