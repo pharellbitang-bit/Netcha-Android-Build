@@ -1,4 +1,5 @@
 name: Netcha three-person cross-country API journey
+# Re-run against the latest isolated QA test suite; never target production.
 
 on:
   workflow_dispatch:
