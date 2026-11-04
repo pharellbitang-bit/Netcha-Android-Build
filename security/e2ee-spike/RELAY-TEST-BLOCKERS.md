@@ -127,7 +127,7 @@ Run: https://github.com/pharellbitang-bit/Netcha-Android-Build/actions/runs/4185
 
 ## Netcha Capacitor storage integration gate
 
-The Android build repository's current `package.json` contains Capacitor 7, Firebase Messaging, and Local Notifications, but no SQLCipher database adapter or native secure-key vault. The SDK's built-in stores do not provide a drop-in Capacitor adapter:
+The Android wrapper now pins candidate native storage dependencies in its root `package.json`: `@capacitor-community/sqlite@7.0.3` and `@aparajita/capacitor-secure-storage@7.1.6`. Its `capacitor.config.json` enables SQLite encryption for Android/iOS and registers `SecureStorage`; `.github/workflows/storage-native-compile.yml` generates an isolated Android project, syncs plugins, checks native registration, and compiles a debug APK. This is only a dependency/configuration and compile gate: no SDK store adapter, schema, native instrumentation test, or key lifecycle implementation has been added. The SDK's built-in stores still do not provide a drop-in Capacitor adapter:
 
 - The SDK's React Native SQLCipher store is for bare React Native/op-sqlite and react-native-keychain. It cannot be installed into this Capacitor application as-is.
 - The SDK's browser SQLCipher/OPFS store may be a candidate only if the Android WebView supports OPFS and the required worker/CSP configuration. Its default database key vault is IndexedDB on the same origin; same-origin JavaScript, including injected or XSS code, can read that key. It is therefore not sufficient as the final native key-custody boundary for Netcha.
