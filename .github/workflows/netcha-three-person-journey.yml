@@ -16,7 +16,7 @@ permissions:
 jobs:
   three-person-journey:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 120
     services:
       postgres:
         image: postgres:16
@@ -113,6 +113,10 @@ jobs:
       - name: Execute three-person journey (CM, CM, CI)
         working-directory: netcha-source
         run: python tests/three_person_cross_country_journey.py
+
+      - name: Execute 108-account 54-country friendship and private messaging matrix
+        working-directory: netcha-source
+        run: python tests/africa_108_users_friendship_messaging.py
 
       - name: Print isolated API log on failure
         if: failure()
