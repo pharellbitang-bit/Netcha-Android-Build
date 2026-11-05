@@ -48,6 +48,10 @@ jobs:
           console.log('Exact plugin pins and native encryption configuration verified.');
           JS
 
+      - name: Parse the WebView relay, media and native storage adapters
+        run: |
+          for file in security/e2ee-spike/client/*.mjs security/e2ee-spike/relay/*.mjs; do node --check "$file"; done
+
       - name: Generate isolated Android project
         run: npx cap add android
 
