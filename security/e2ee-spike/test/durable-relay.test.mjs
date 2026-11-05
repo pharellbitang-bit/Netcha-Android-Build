@@ -16,7 +16,7 @@ test('durable relay persists mailboxes, atomically consumes prekeys and rotates 
   const [aliceDevice,bobDevice,caraDevice] = await Promise.all([
     repo.registerDevice(alice),repo.registerDevice(bob),repo.registerDevice(cara)
   ]);
-  t.after(async()=>{await pool.query('DELETE FROM e2ee_devices WHERE account_id = ANY($1)',[[alice,bob,cara]]);await pool.query('DELETE FROM e2ee_groups WHERE group_id=$1',['g-'+suffix]);await pool.end()});
+  t.after(async()=>{await pool.query('DELETE FROM e2ee_devices WHERE account_id = ANY($1)',[[alice,bob,cara]]);await pool.query('DELETE FROM e2ee_account_identities WHERE account_id = ANY($1)',[[alice,bob,cara]]);await pool.query('DELETE FROM e2ee_groups WHERE group_id=$1',['g-'+suffix]);await pool.end()});
 
   const publicKey=Buffer.alloc(32).toString('base64');
   const identity={version:1,x25519PublicKey:publicKey,ed25519PublicKey:publicKey};
