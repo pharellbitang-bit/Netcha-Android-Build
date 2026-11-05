@@ -95,7 +95,7 @@ export class DurableRelayRepository {
           `WITH picked AS (
              SELECT id FROM e2ee_prekeys WHERE account_id=$1 AND device_id=$2
                AND identity_type=$3 AND key_type=$4 AND consumed_at IS NULL
-             ORDER BY id FOR UPDATE SKIP LOCKED LIMIT 1
+             ORDER BY id LIMIT 1 FOR UPDATE SKIP LOCKED
            )
            UPDATE e2ee_prekeys p SET consumed_at=now()
            FROM picked WHERE p.id=picked.id
