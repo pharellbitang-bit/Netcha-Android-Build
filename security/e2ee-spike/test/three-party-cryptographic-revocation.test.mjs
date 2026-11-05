@@ -15,6 +15,16 @@ async function until(check, label, timeoutMs = 20000) {
   throw new Error('TIMEOUT_WAITING_FOR_' + label + (last ? ': ' + last.message : ''));
 }
 
+async function decryptGroup(client, senderUserId, ciphertext) {
+  const result = await client.decryptEnvelope({
+    senderUserId,
+    senderDeviceId: 1,
+    messageType: 'sender_key',
+    ciphertext,
+  });
+  return result.plaintext;
+}
+
 test('REAL FOUR-PARTY CRYPTO: removed Cara retains history but cannot decrypt group messages after sender-key rotation', async t => {
   const relay = createTestRelay();
   const users = ['alice', 'bob', 'cara', 'david'].map(name => name + '-' + randomUUID());
@@ -62,7 +72,7 @@ test('REAL FOUR-PARTY CRYPTO: removed Cara retains history but cannot decrypt gr
 
   const beforeRemoval = await alice.encryptGroupMessage(groupId, 'historical-message-before-removal');
   for (const client of recipients) {
-    assert.equal(await client.decryptGroupMessage(groupId, users[0], 1, beforeRemoval),
+    assert.equal(await decryptGroup(client, users[0], beforeRemoval),
       'historical-message-before-removal');
   }
 
@@ -84,12 +94,12 @@ test('REAL FOUR-PARTY CRYPTO: removed Cara retains history but cannot decrypt gr
   }, 'ROTATED_KEY_ON_REMAINING_BOB_AND_DAVID');
 
   const afterRemoval = await alice.encryptGroupMessage(groupId, 'confidential-message-after-removal');
-  assert.equal(await bob.decryptGroupMessage(groupId, users[0], 1, afterRemoval),
+  assert.equal(await decryptGroup(bob, users[0], afterRemoval),
     'confidential-message-after-removal');
-  assert.equal(await david.decryptGroupMessage(groupId, users[0], 1, afterRemoval),
+  assert.equal(await decryptGroup(david, users[0], afterRemoval),
     'confidential-message-after-removal');
   await assert.rejects(
-    cara.decryptGroupMessage(groupId, users[0], 1, afterRemoval),
+    decryptGroup(cara, users[0], afterRemoval),
     undefined,
     'removed member must not decrypt ciphertext created after sender-key rotation'
   );
