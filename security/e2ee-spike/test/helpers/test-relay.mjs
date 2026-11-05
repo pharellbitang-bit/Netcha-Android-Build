@@ -35,8 +35,20 @@ export function createTestRelay() {
       const prior=identities.get(request.userId);
       if(prior && JSON.stringify(prior)!==JSON.stringify(request.identity)) throw new Error('IDENTITY_TUPLE_MISMATCH');
       identities.set(request.userId,request.identity);
-      const device=devices.get(request.userId)?.get(request.deviceId);
-      if(device) device.registrationId=request.registrationId;
+      // The production relay creates the primary-device registry row before
+      // publishing identity/prekeys. The SDK does not call registerDevice for
+      // an already-assigned primary slot, so the test relay must model that
+      // server-owned registration during first identity provisioning.
+      if (!devices.has(request.userId)) devices.set(request.userId, new Map());
+      const owned = devices.get(request.userId);
+      if (!owned.has(request.deviceId)) owned.set(request.deviceId, {
+        deviceId: request.deviceId,
+        registered: true,
+        linked: request.deviceId !== 1,
+        enabled: true
+      });
+      const device=owned.get(request.deviceId);
+      device.registrationId=request.registrationId;
       states.set(key(request.userId,request.deviceId),{identity:request.identity,registrationId:request.registrationId});
     },
     async rotateIdentityKey() { throw new Error('NOT_USED_IN_TEST'); },
