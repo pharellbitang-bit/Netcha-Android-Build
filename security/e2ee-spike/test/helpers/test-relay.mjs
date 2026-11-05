@@ -42,7 +42,7 @@ export function createTestRelay() {
     async rotateIdentityKey() { throw new Error('NOT_USED_IN_TEST'); },
     async getIdentityKey(userId) { return identities.get(userId) ?? null; },
     async uploadPreKeys(userId, deviceId, keys) {
-      audit.push({op:'uploadPreKeys',userId,types:keys.map(k=>k.type)});
+      audit.push({op:'uploadPreKeys',userId,counts:keys.reduce((out,k)=>(out[k.type]=(out[k.type]??0)+1,out),{})});
       const k=key(userId,deviceId); if(!prekeys.has(k))prekeys.set(k,[]); prekeys.get(k).push(...keys);
     },
     async fetchPreKeyBundle(userId, deviceId) {
@@ -73,7 +73,7 @@ export function createTestRelay() {
     async getEcSignedPreKeyMetadata(userId,deviceId) { return (await this.getPreKeyInventory(userId,deviceId)).ecSignedPreKey; },
     async getKemLastResortPreKeyMetadata(userId,deviceId) { return (await this.getPreKeyInventory(userId,deviceId)).kemLastResortPreKey; },
     async send(envelope) {
-      audit.push({op:'send',from:envelope.senderUserId,to:envelope.targetUserId,type:envelope.messageType});
+      audit.push({op:'send',from:envelope.senderUserId,to:envelope.targetUserId,fromDevice:envelope.senderDeviceId,toDevice:envelope.targetDeviceId,type:envelope.messageType});
       const messageId=envelope.clientMessageId??randomUUID(), recipientKey=key(envelope.targetUserId,envelope.targetDeviceId);
       const stored={...envelope,id:messageId,messageId,serverTimestamp:now()};
       if(!mailboxes.has(recipientKey))mailboxes.set(recipientKey,[]);
