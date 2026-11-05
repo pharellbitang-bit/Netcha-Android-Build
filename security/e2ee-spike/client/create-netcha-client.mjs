@@ -1,28 +1,29 @@
 import { createSignalProtocolClient } from '@open-e2ee/signal-protocol-sdk';
-import { webSqliteStore } from '@open-e2ee/signal-protocol-sdk/local/store/web-sqlite';
+import { keyValueStore } from '@open-e2ee/signal-protocol-sdk/local/store/key-value';
 import { CapacitorNativeSignalSecretVault } from './capacitor-native-vault.mjs';
+import { CapacitorSqlCipherKeyValueBackend } from './capacitor-sqlcipher-kv-backend.mjs';
 
 /**
  * Android/iOS WebView client composition.
- * SQLCipher database is stored in OPFS; its random 32-byte wrapping key is
- * stored by the Capacitor SecureStorage native plugin (Android Keystore /
- * iOS Keychain). There is intentionally no IndexedDB/localStorage fallback.
+ * Ratchet/session/sender-key state is persisted in a native SQLCipher DB.
+ * The DB passphrase and SDK record-encryption key are held in Android Keystore
+ * / iOS Keychain. There is intentionally no memory/localStorage fallback.
  */
 export async function createNetchaE2EEClient({ identity, relay, hooks = {} }) {
-  if (!identity?.userId || !relay) throw new Error('E2EE_IDENTITY_AND_RELAY_REQUIRED');
+  if (!identity?.userId || !Number.isInteger(identity.deviceId) || !relay)
+    throw new Error('E2EE_IDENTITY_AND_RELAY_REQUIRED');
   if (!globalThis.crypto?.getRandomValues || !globalThis.crypto?.subtle)
     throw new Error('SECURE_WEBCRYPTO_UNAVAILABLE');
+
   const vault = new CapacitorNativeSignalSecretVault();
-  const storage = await webSqliteStore({
-    name: 'netcha-signal-protocol.db',
-    vault,
-    encryptionAtRest: true
-  });
-  // webSqliteStore refuses to open when SQLCipher is unavailable or disabled.
+  const namespace = `netcha.signal.v1:${identity.userId}:${identity.deviceId}`;
+  const backend = await CapacitorSqlCipherKeyValueBackend.open({ namespace });
+  const storage = await keyValueStore({ storage: backend, vault });
+  if (!storage.protection) throw new Error('E2EE_STORAGE_PROTECTION_UNDECLARED');
+
   return createSignalProtocolClient({
     identity,
     adapters: { storage, relay },
-    hooks,
-    protocol: { requirePostQuantum: true }
+    hooks
   });
 }
