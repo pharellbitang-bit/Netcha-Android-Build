@@ -2,9 +2,14 @@
   "name": "netcha-e2ee-spike",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22.12.0" },
-  "scripts": { "test": "node --test" },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
   "dependencies": {
-    "@open-e2ee/signal-protocol-sdk": "14.0.0"
+    "@open-e2ee/signal-protocol-sdk": "14.0.0",
+    "pg": "^8.16.3"
   }
 }
