@@ -31,37 +31,11 @@ test('REAL FOUR-PARTY CRYPTO: removed Cara retains history but cannot decrypt gr
   });
 
   await Promise.all(clients.map(client => client.syncToServer()));
-  // Sender-key distribution is a pairwise-encrypted ordinary message.
-  // The application must parse it and install the sender key explicitly.
-  for (const client of recipients) {
-    client.registerHook('onMessageDecrypted', async event => {
-      let payload;
-      try { payload = JSON.parse(event.content); }
-      catch { relay.audit.push({op:'decrypted-hook',sender:event.senderId,contentType:typeof event.content,parsed:false}); return; }
-      // The SDK wraps the serialized distribution in a JSON string field.
-      if (!payload || typeof payload.senderKeyDistributionMessage !== 'string') {
-        relay.audit.push({op:'decrypted-hook',sender:event.senderId,outerKeys:Object.keys(payload ?? {}),distribution:false});
-        return;
-      }
-      let parsed;
-      try { parsed = JSON.parse(payload.senderKeyDistributionMessage); }
-      catch { relay.audit.push({op:'decrypted-hook',sender:event.senderId,distributionJson:false}); return; }
-      relay.audit.push({op:'decrypted-hook',sender:event.senderId,distribution:true,fields:Object.keys(parsed ?? {})});
-      if (!parsed || typeof parsed !== 'object' || !parsed.senderKeyVersion || !parsed.groupId) return;
-      const distribution = {
-        senderKeyVersion: parsed.senderKeyVersion,
-        senderKeyId: parsed.senderKeyId,
-        chainId: parsed.chainId,
-        chainIndex: parsed.chainIndex,
-        generation: parsed.generation,
-        chainKey: parsed.chainKey,
-        publicSignatureKey: parsed.publicSignatureKey,
-      };
-      await client.processGroupSenderKeyDistribution(
-        parsed.groupId, event.senderId, event.senderDeviceId, distribution
-      );
-    });
-  }
+  // The SDK's relay receive path installs authenticated sender-key
+  // distributions before acknowledging the envelope. A hook is required
+  // to activate subscriptions; it intentionally does not install the key
+  // a second time.
+  for (const client of recipients) client.registerHook('onMessageDecrypted', async () => {});
   for (const client of recipients) client.startRelaySubscription();
   const groupId = 'netcha-revocation-' + randomUUID();
 
@@ -77,10 +51,11 @@ test('REAL FOUR-PARTY CRYPTO: removed Cara retains history but cannot decrypt gr
   }
   try {
     await until(async () => {
-      return await bob.hasGroupSenderKey(groupId) &&
-        await cara.hasGroupSenderKey(groupId) &&
-        await david.hasGroupSenderKey(groupId);
-    }, 'INITIAL_KEYS_ON_ALL_THREE_MEMBERS');
+      const bobStats = await bob.getGroupSenderKeyStats(groupId, users[0], 1);
+      const caraStats = await cara.getGroupSenderKeyStats(groupId, users[0], 1);
+      const davidStats = await david.getGroupSenderKeyStats(groupId, users[0], 1);
+      return Boolean(bobStats && caraStats && davidStats);
+    }, 'INITIAL_REMOTE_SENDER_KEYS_ON_BOB_CARA_DAVID');
   } catch (error) {
     throw new Error(error.message + ' | relay audit=' + JSON.stringify(relay.audit));
   }
