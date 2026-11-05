@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Netcha Android — laboratoire E2EE</title>
+<style>
+:root{font:16px system-ui;color-scheme:dark;background:#101827;color:#f5f7fb}
+body{max-width:640px;margin:0 auto;padding:24px 16px}
+main{background:#192437;padding:22px;border-radius:16px}
+p{color:#c4ccda;line-height:1.5}.warning{border-left:3px solid #e8ad50;padding-left:12px}
+label{display:block;margin:14px 0 6px}
+input,textarea,button{box-sizing:border-box;width:100%;padding:12px;border-radius:9px;border:1px solid #42516a;background:#101827;color:#fff}
+button{margin-top:12px;background:#16b8b0;color:#071b20;font-weight:700}
+button:disabled{opacity:.45}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#101827;padding:12px;border-radius:9px}
+</style></head>
+<body><main>
+<h1>Netcha — laboratoire E2EE Android</h1>
+<p class="warning"><strong>Prototype isolé, pas une fonction Netcha.</strong> Cette page utilise des comptes Matrix fictifs et un homeserver de test. N'entrez jamais vos identifiants Netcha. Elle n'est pas intégrée à l'APK ni à la messagerie de production.</p>
+<label for="homeserver">Homeserver Matrix HTTPS</label><input id="homeserver" type="url" placeholder="https://matrix.example.org">
+<label for="user">Identifiant Matrix de test</label><input id="user" autocomplete="username">
+<label for="password">Mot de passe Matrix de test</label><input id="password" type="password" autocomplete="off">
+<button id="connect">Connexion et initialisation E2EE</button>
+<label for="room">Salon chiffré</label><input id="room">
+<button id="create" disabled>Créer un salon privé chiffré</button>
+<label for="message">Message fictif</label><textarea id="message" rows="3"></textarea>
+<button id="send" disabled>Envoyer</button><button id="logout" disabled>Déconnexion</button>
+<h2>Journal</h2><pre id="log">Prêt.</pre>
+</main><script type="module" src="/src/main.js"></script></body></html>

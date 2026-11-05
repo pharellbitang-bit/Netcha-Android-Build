@@ -1,0 +1,69 @@
+name: E2EE Android isolated lab
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "e2ee-lab/**"
+      - "docs/e2ee-android-lab.md"
+      - ".github/workflows/e2ee-android-lab.yml"
+  push:
+    branches:
+      - "security/e2ee-android-lab"
+    paths:
+      - "e2ee-lab/**"
+      - "docs/e2ee-android-lab.md"
+      - ".github/workflows/e2ee-android-lab.yml"
+permissions:
+  contents: read
+jobs:
+  isolated-lab:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: e2ee-lab
+    steps:
+      - name: Checkout Android repository
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install isolated lab dependencies
+        run: npm install --no-audit --no-fund
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
+      - name: Syntax and browser bundle
+        run: |
+          node --check src/main.js
+          node --check integration.mjs
+          npm run build
+      - name: Generate disposable Synapse homeserver
+        run: |
+          mkdir -p "$RUNNER_TEMP/netcha-synapse"
+          docker run --rm -v "$RUNNER_TEMP/netcha-synapse:/data" -e SYNAPSE_SERVER_NAME=localhost -e SYNAPSE_REPORT_STATS=no matrixdotorg/synapse:latest generate
+          sudo chmod -R a+rwX "$RUNNER_TEMP/netcha-synapse"
+          SECRET="$(openssl rand -hex 32)"
+          echo "::add-mask::$SECRET"
+          echo "MATRIX_REGISTRATION_SHARED_SECRET=$SECRET" >> "$GITHUB_ENV"
+          printf '\nenable_registration: true\nenable_registration_without_verification: true\nregistration_shared_secret: "%s"\n' "$SECRET" >> "$RUNNER_TEMP/netcha-synapse/homeserver.yaml"
+      - name: Start disposable Synapse
+        run: |
+          docker run -d --name netcha-android-e2ee-synapse -p 8008:8008 -v "$RUNNER_TEMP/netcha-synapse:/data" matrixdotorg/synapse:latest run -c /data/homeserver.yaml
+          for i in $(seq 1 60); do
+            curl --fail --silent http://127.0.0.1:8008/_matrix/client/versions >/dev/null && exit 0
+            sleep 2
+          done
+          docker logs netcha-android-e2ee-synapse
+          exit 1
+      - name: Two-way encryption and membership integration test
+        run: npm run test:e2ee
+        env:
+          MATRIX_BASE_URL: http://127.0.0.1:8008
+          MATRIX_REGISTRATION_SHARED_SECRET: ${{ env.MATRIX_REGISTRATION_SHARED_SECRET }}
+          RUST_LOG: warn
+      - name: Synapse logs on failure
+        if: failure()
+        run: docker logs netcha-android-e2ee-synapse || true
+      - name: Stop disposable Synapse
+        if: always()
+        run: docker rm -f netcha-android-e2ee-synapse || true
