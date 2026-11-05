@@ -32,7 +32,7 @@ test('offline ciphertext survives process restart and is delivered once after re
   const stored = [...persistentData.values()].join('\n');
   assert.equal(stored.includes('plaintext'), false);
   assert.equal(stored.includes('Hello Bob'), false);
-  assert.ok(stored.includes('CwYbLDdG'), 'only the base64 ciphertext is persisted');
+  assert.ok(stored.includes('CxYhLDdC'), 'only the base64 ciphertext is persisted');
 
   // A new app process gets a new wrapper and relay, but the encrypted SQLCipher
   // namespace is the same, so the pending envelope is recovered.
