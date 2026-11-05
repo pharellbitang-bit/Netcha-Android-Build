@@ -19,8 +19,9 @@ test('durable relay persists mailboxes, atomically consumes prekeys and rotates 
   t.after(async()=>{await pool.query('DELETE FROM e2ee_devices WHERE account_id = ANY($1)',[[alice,bob,cara]]);await pool.query('DELETE FROM e2ee_groups WHERE group_id=$1',['g-'+suffix]);await pool.end()});
 
   const publicKey=Buffer.alloc(32).toString('base64');
-  await repo.provisionIdentityKey({userId:bob,deviceId:bobDevice,registrationId:77,
-    identity:{version:1,x25519PublicKey:publicKey,ed25519PublicKey:publicKey}});
+  const identity={version:1,x25519PublicKey:publicKey,ed25519PublicKey:publicKey};
+  await repo.provisionIdentityKey({userId:bob,deviceId:bobDevice,registrationId:77,identity});
+  await repo.provisionIdentityKey({userId:alice,deviceId:aliceDevice,registrationId:78,identity});
   await repo.uploadPrekeys(bob,bobDevice,'aci',[
     {type:'ecSignedPreKey',keyId:1,publicKey:publicKey,signature:'c2lnbmF0dXJl'},
     {type:'kemLastResortPreKey',keyId:2,publicKey:publicKey,signature:'c2lnbmF0dXJl'},
@@ -37,8 +38,9 @@ test('durable relay persists mailboxes, atomically consumes prekeys and rotates 
   assert.equal(bundleA.registrationId,77);
   assert.equal(bundleA.identity.version,1);
 
-  const envelope = {id:'client-'+suffix,senderUserId:alice,targetUserId:bob,targetDeviceId:bobDevice,
-    messageType:'ciphertext',ciphertext:'opaque-ciphertext-fixture'};
+  const envelope = {clientMessageId:'client-'+suffix,senderUserId:alice,senderDeviceId:aliceDevice,
+    targetUserId:bob,targetDeviceId:bobDevice,messageType:'ciphertext',deliveryClass:'user-visible',
+    timestamp:Date.now(),ciphertext:'opaque-ciphertext-fixture'};
   await repo.enqueueEnvelope(alice,aliceDevice,envelope);
   const pending = await repo.pendingEnvelopes(bob,bobDevice);
   assert.equal(pending.length,1);
