@@ -7,7 +7,7 @@ import { DurableRelayRepository } from '../relay/durable-relay-repository.mjs';
 const url = process.env.E2EE_TEST_DATABASE_URL;
 test('durable relay persists mailboxes, atomically consumes prekeys and rotates group epoch on removal',
   { skip: !url }, async t => {
-  const pool = new pg.Pool({ connectionString:url, max:8 });
+  let pool = new pg.Pool({ connectionString:url, max:8 });
   const schema = await readFile(new URL('../relay/001_durable_relay.sql', import.meta.url),'utf8');
   await pool.query(schema);
   const repo = new DurableRelayRepository(pool);
@@ -40,13 +40,12 @@ test('durable relay persists mailboxes, atomically consumes prekeys and rotates 
   assert.equal(pending.length,1);
   assert.equal(pending[0].ciphertext,'opaque-ciphertext-fixture');
   await pool.end();
-  const reopened = new pg.Pool({connectionString:url});
-  const durable = new DurableRelayRepository(reopened);
+  pool = new pg.Pool({connectionString:url});
+  const durable = new DurableRelayRepository(pool);
   const afterRestart = await durable.pendingEnvelopes(bob,bobDevice);
   assert.equal(afterRestart.length,1,'unacknowledged mailbox envelope survives relay process restart');
   await durable.acknowledge(bob,bobDevice,afterRestart[0].id);
   assert.equal((await durable.pendingEnvelopes(bob,bobDevice)).length,0);
-  await reopened.end();
 
   const groupId='g-'+suffix;
   await pool.query(
