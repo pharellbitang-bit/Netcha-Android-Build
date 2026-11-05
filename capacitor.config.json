@@ -6,6 +6,10 @@
     "allowMixedContent": false
   },
   "plugins": {
+    "CapacitorSQLite": {
+      "androidIsEncryption": true,
+      "iosIsEncryption": true
+    },
     "LocalNotifications": {
       "iconColor": "#8b9cff",
       "sound": null
@@ -16,6 +20,7 @@
         "sound",
         "alert"
       ]
-    }
+    },
+    "SecureStorage": {}
   }
 }

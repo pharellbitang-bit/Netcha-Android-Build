@@ -1,0 +1,29 @@
+name: GitHub runner allocation diagnostic
+
+on:
+  push:
+    branches:
+      - diagnostics/github-runner-allocation
+    paths:
+      - ".github/workflows/runner-allocation-diagnostic.yml"
+      - "security/e2ee-spike/**"
+
+permissions:
+  contents: read
+
+jobs:
+  runner-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Confirm hosted runner allocation
+        run: |
+          echo "RUNNER_ALLOCATED=ubuntu-latest"
+          uname -a
+          node --version
+      - name: Fetch isolated E2EE test fixture
+        run: git clone --depth 1 --branch diagnostics/github-runner-allocation https://github.com/pharellbitang-bit/Netcha-Android-Build.git /tmp/netcha-e2ee-spike
+      - name: Install isolated E2EE SDK dependency
+        run: npm --prefix /tmp/netcha-e2ee-spike/security/e2ee-spike install --ignore-scripts --no-audit --no-fund
+      - name: Run isolated E2EE bootstrap test
+        run: npm --prefix /tmp/netcha-e2ee-spike/security/e2ee-spike test

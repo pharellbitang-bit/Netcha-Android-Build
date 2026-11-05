@@ -1,0 +1,25 @@
+name: E2EE isolated Alice-Bob-Alice
+on:
+  push:
+    branches: [diagnostics/github-runner-allocation]
+    paths:
+      - 'security/e2ee-spike/**'
+      - '.github/workflows/e2ee-alice-bob-alice.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pairwise-exchange:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned SDK
+        working-directory: security/e2ee-spike
+        run: npm install --ignore-scripts
+      - name: Execute isolated cryptographic exchange
+        working-directory: security/e2ee-spike
+        run: npm test
