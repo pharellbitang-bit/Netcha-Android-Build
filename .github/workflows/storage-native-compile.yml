@@ -13,6 +13,7 @@ on:
     paths:
       - 'package.json'
       - 'capacitor.config.json'
+      - 'security/e2ee-spike/**'
       - '.github/workflows/storage-native-compile.yml'
   workflow_dispatch:
 
