@@ -2,7 +2,7 @@ name: Capacitor 7 encrypted-storage native compile gate
 
 on:
   push:
-    branches: [diagnostics/github-runner-allocation]
+    branches: [diagnostics/github-runner-allocation, security/e2ee-durable-relay-storage-groups]
     paths:
       - 'package.json'
       - 'capacitor.config.json'
@@ -29,7 +29,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22.12.0'
 
       - name: Install pinned Capacitor plugins
         run: npm install
