@@ -31,9 +31,27 @@ test('REAL FOUR-PARTY CRYPTO: removed Cara retains history but cannot decrypt gr
   });
 
   await Promise.all(clients.map(client => client.syncToServer()));
-  // Install the receive hooks before starting subscriptions so the SDK can
-  // process pairwise-encrypted sender-key distribution envelopes.
-  for (const client of recipients) client.registerHook('onMessageDecrypted', async () => {});
+  // Sender-key distribution is a pairwise-encrypted ordinary message.
+  // The application must parse it and install the sender key explicitly.
+  for (const client of recipients) {
+    client.registerHook('onMessageDecrypted', async event => {
+      let parsed;
+      try { parsed = JSON.parse(event.content); } catch { return; }
+      if (!parsed || typeof parsed !== 'object' || !parsed.senderKeyVersion || !parsed.groupId) return;
+      const distribution = {
+        senderKeyVersion: parsed.senderKeyVersion,
+        senderKeyId: parsed.senderKeyId,
+        chainId: parsed.chainId,
+        chainIndex: parsed.chainIndex,
+        generation: parsed.generation,
+        chainKey: parsed.chainKey,
+        publicSignatureKey: parsed.publicSignatureKey,
+      };
+      await client.processGroupSenderKeyDistribution(
+        parsed.groupId, event.senderId, event.senderDeviceId, distribution
+      );
+    });
+  }
   for (const client of recipients) client.startRelaySubscription();
   const groupId = 'netcha-revocation-' + randomUUID();
 
