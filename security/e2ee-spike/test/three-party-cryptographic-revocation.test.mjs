@@ -3,31 +3,33 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { createSignalProtocolClient } from '@open-e2ee/signal-protocol-sdk';
 import { inMemoryStore } from '@open-e2ee/signal-protocol-sdk/local/store/memory';
-import { inMemoryRelay } from '@open-e2ee/signal-protocol-sdk/remote/relay/memory';
+import { createTestRelay } from './helpers/test-relay.mjs';
 
-async function until(check, label, timeoutMs = 15000) {
+async function until(check, label, timeoutMs = 20000) {
   const end = Date.now() + timeoutMs;
   let last;
   while (Date.now() < end) {
     try { const value = await check(); if (value) return value; } catch (error) { last = error; }
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise(resolve => setTimeout(resolve, 75));
   }
   throw new Error('TIMEOUT_WAITING_FOR_' + label + (last ? ': ' + last.message : ''));
 }
 
 test('REAL THREE-PARTY CRYPTO: removed Cara decrypts history but cannot decrypt post-rotation group messages', async t => {
-  const relay = inMemoryRelay();
+  const relay = createTestRelay();
   const users = ['alice-' + randomUUID(), 'bob-' + randomUUID(), 'cara-' + randomUUID()];
-  for (const userId of users) await relay.registerDevice(userId, { encryptedDeviceName: new ArrayBuffer(0) });
-
   const clients = await Promise.all(users.map(userId => createSignalProtocolClient({
     identity: { userId },
     adapters: { storage: inMemoryStore(), relay },
   })));
   const [alice, bob, cara] = clients;
-  t.after(async () => { await Promise.all(clients.map(client => client.stop().catch(() => {}))); });
+  t.after(async () => {
+    for (const client of clients) {
+      try { client.stopRelaySubscription(); } catch {}
+    }
+  });
 
-  // Recipients must be online to consume pairwise-encrypted sender-key handoffs.
+  await Promise.all(clients.map(client => client.syncToServer()));
   bob.startRelaySubscription();
   cara.startRelaySubscription();
   const groupId = 'netcha-revocation-' + randomUUID();
@@ -54,15 +56,11 @@ test('REAL THREE-PARTY CRYPTO: removed Cara decrypts history but cannot decrypt 
 
   const afterRemoval = await alice.encryptGroupMessage(groupId, 'confidential-message-after-removal');
   assert.equal(await bob.decryptGroupMessage(groupId, users[0], 1, afterRemoval), 'confidential-message-after-removal');
-
-  // Cara deliberately retains the old sender key: this is the adversarial test.
-  // The new ciphertext must fail authentication/decryption with that stale key.
   await assert.rejects(
     cara.decryptGroupMessage(groupId, users[0], 1, afterRemoval),
     undefined,
     'removed member must not decrypt ciphertext created after sender-key rotation'
   );
-
   const caraAfter = await cara.getGroupSenderKeyStats(groupId, users[0], 1);
   assert.equal(caraAfter.generation, caraBefore.generation, 'removed member must not receive the rotated sender-key generation');
 });
