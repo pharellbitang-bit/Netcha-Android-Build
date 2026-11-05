@@ -68,22 +68,8 @@ jobs:
           disable-animations: true
           working-directory: android-netcha-harness
           script: |
-            set -Eeuo pipefail
             adb wait-for-device
-            for attempt in $(seq 1 45); do
-              boot="$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)"
-              package_service="$(adb shell service check package 2>&1 || true)"
-              if [[ "$boot" == "1" ]] && grep -q "found" <<<"$package_service"; then
-                break
-              fi
-              if [[ "$attempt" == "45" ]]; then
-                echo "Android emulator PackageManager unavailable"
-                adb shell service check package || true
-                adb logcat -d -t 5000 || true
-                exit 1
-              fi
-              sleep 2
-            done
+            adb shell getprop sys.boot_completed
             gradle --no-daemon --stacktrace connectedDebugAndroidTest
 
       - name: Upload Netcha WebView diagnostics
