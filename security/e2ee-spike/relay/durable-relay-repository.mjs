@@ -114,11 +114,11 @@ export class DurableRelayRepository {
   }
 
   async enqueueEnvelope(authAccountId, senderDeviceId, envelope) {
-    if (envelope.senderUserId !== authAccountId) throw new Error('SENDER_MISMATCH');
+    if (envelope.senderUserId !== authAccountId || envelope.senderDeviceId !== senderDeviceId) throw new Error('SENDER_MISMATCH');
     const { rows } = await this.pool.query(
       `INSERT INTO e2ee_mailbox(client_message_id,sender_account_id,sender_device_id,
-        target_account_id,target_device_id,identity_type,message_type,content_kind,ciphertext,operation_epoch_ms)
-       SELECT $1,$2,$3,$4,$5,$6,$7,$8,$9,$10
+        target_account_id,target_device_id,identity_type,message_type,content_kind,delivery_class,timestamp_ms,ciphertext,operation_epoch_ms)
+       SELECT $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
        WHERE EXISTS (SELECT 1 FROM e2ee_devices WHERE account_id=$2 AND device_id=$3
          AND identity_type=$6 AND enabled=true)
        AND EXISTS (SELECT 1 FROM e2ee_devices WHERE account_id=$4 AND device_id=$5
@@ -126,9 +126,9 @@ export class DurableRelayRepository {
        ON CONFLICT(target_account_id,target_device_id,client_message_id)
        DO UPDATE SET client_message_id=EXCLUDED.client_message_id
        RETURNING id,client_message_id,created_at`,
-      [envelope.id ?? randomUUID(),authAccountId,senderDeviceId,envelope.targetUserId,
-       envelope.targetDeviceId,envelope.identityType ?? 'aci',envelope.messageType,
-       envelope.contentKind ?? 'message',envelope.ciphertext,envelope.operationEpochMilliseconds ?? null]);
+      [envelope.clientMessageId ?? randomUUID(),authAccountId,senderDeviceId,envelope.targetUserId,
+       envelope.targetDeviceId,'aci',envelope.messageType,envelope.contentKind ?? 'message',
+       envelope.deliveryClass ?? 'user-visible',envelope.timestamp,envelope.ciphertext,envelope.operationEpochMilliseconds ?? null]);
     if (!rows[0]) throw new Error('DEVICE_NOT_AUTHORIZED');
     return rows[0];
   }
@@ -138,8 +138,9 @@ export class DurableRelayRepository {
       `SELECT id,client_message_id AS "clientMessageId",sender_account_id AS "senderUserId",
        sender_device_id AS "senderDeviceId",target_account_id AS "targetUserId",
        target_device_id AS "targetDeviceId",identity_type AS "identityType",
-       message_type AS "messageType",content_kind AS "contentKind",ciphertext,
-       operation_epoch_ms AS "operationEpochMilliseconds",created_at AS "serverTimestamp"
+       message_type AS "messageType",content_kind AS "contentKind",delivery_class AS "deliveryClass",
+       timestamp_ms AS timestamp,ciphertext,operation_epoch_ms AS "operationEpochMilliseconds",
+       (extract(epoch from created_at)*1000)::bigint AS "serverTimestamp"
        FROM e2ee_mailbox WHERE target_account_id=$1 AND target_device_id=$2
        AND delivered_at IS NULL ORDER BY created_at LIMIT $3`,
       [accountId,deviceId,Math.min(Math.max(limit,1),250)]);
