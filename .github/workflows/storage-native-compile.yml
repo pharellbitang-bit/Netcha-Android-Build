@@ -2,6 +2,7 @@ name: Capacitor 7 encrypted-storage native compile gate
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, edited]
     paths:
       - 'package.json'
       - 'capacitor.config.json'
