@@ -1,0 +1,43 @@
+name: E2EE durable relay integration lab
+on:
+  pull_request:
+    paths:
+      - 'security/e2ee-spike/**'
+      - '.github/workflows/e2ee-durable-relay.yml'
+  push:
+    branches: [security/e2ee-durable-relay-storage-groups]
+    paths:
+      - 'security/e2ee-spike/**'
+      - '.github/workflows/e2ee-durable-relay.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  durable-relay:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: netcha
+          POSTGRES_PASSWORD: netcha-lab
+          POSTGRES_DB: netcha_e2ee_lab
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U netcha -d netcha_e2ee_lab"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      E2EE_TEST_DATABASE_URL: postgresql://netcha:netcha-lab@127.0.0.1:5432/netcha_e2ee_lab
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+      - name: Install pinned lab dependencies
+        working-directory: security/e2ee-spike
+        run: npm install --ignore-scripts
+      - name: Run PostgreSQL durability, prekey and group-revocation tests
+        working-directory: security/e2ee-spike
+        run: node --test test/durable-relay.test.mjs
