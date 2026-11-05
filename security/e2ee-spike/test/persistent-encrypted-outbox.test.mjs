@@ -84,3 +84,20 @@ test('retryable failures retain order and stop a flush until the relay is reacha
   assert.deepEqual(sent, ['msg-1', 'msg-2']);
   assert.deepEqual(second, { sent: 2, blocked: 0, remaining: 0 });
 });
+
+test('a successful mailbox poll automatically flushes pending ciphertext after reconnect', async () => {
+  const storage = memoryStorage();
+  const delivered = [];
+  const relay = {
+    async send(envelope) { delivered.push(envelope.clientMessageId); return { messageId: 'server-auto' }; },
+    async request(path) { return { path, envelopes: [] }; },
+  };
+  const attached = attachPersistentEncryptedOutbox(relay, storage);
+  const outbox = new PersistentEncryptedOutbox(storage);
+  await outbox.enqueue({ ...fixture(), clientMessageId: 'msg-auto-flush' });
+  await attached.relay.request('/v1/e2ee/mailbox/pull?limit=100');
+  for (let i = 0; i < 30 && await attached.pendingCount(); i++)
+    await new Promise(resolve => setTimeout(resolve, 5));
+  assert.deepEqual(delivered, ['msg-auto-flush']);
+  assert.equal(await attached.pendingCount(), 0);
+});
