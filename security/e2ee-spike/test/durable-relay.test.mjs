@@ -92,8 +92,8 @@ test('durable relay persists mailboxes, atomically consumes prekeys and rotates 
     targetUserId:bob,targetDeviceId:bobDevice,id:'valid-group-bob-'+suffix,ciphertext:'group-ciphertext-bob'});
   await durable.enqueueGroupEnvelope(alice,aliceDevice,{groupId,stateVersion:1,senderKeyEpoch:2,
     targetUserId:david,targetDeviceId:davidDevice,id:'valid-group-david-'+suffix,ciphertext:'group-ciphertext-david'});
-  const groupEnvelope=await pool.query('SELECT target_user_id,ciphertext FROM e2ee_group_envelopes WHERE group_id=$1 ORDER BY target_user_id',[groupId]);
-  assert.deepEqual(groupEnvelope.rows.map(row=>row.target_user_id).sort(),[bob,david].sort(),
+  const groupEnvelope=await pool.query('SELECT target_account_id,ciphertext FROM e2ee_group_envelopes WHERE group_id=$1 ORDER BY target_user_id',[groupId]);
+  assert.deepEqual(groupEnvelope.rows.map(row=>row.target_account_id).sort(),[bob,david].sort(),
     'only the two remaining members can receive post-revocation group envelopes');
   assert.deepEqual(groupEnvelope.rows.map(row=>row.ciphertext).sort(),['group-ciphertext-bob','group-ciphertext-david'].sort());
 });
