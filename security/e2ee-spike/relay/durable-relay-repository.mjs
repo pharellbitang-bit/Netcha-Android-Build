@@ -115,6 +115,27 @@ export class DurableRelayRepository {
 
   async enqueueEnvelope(authAccountId, senderDeviceId, envelope) {
     if (envelope.senderUserId !== authAccountId || envelope.senderDeviceId !== senderDeviceId) throw new Error('SENDER_MISMATCH');
+    const sender = await this.pool.query(
+      `SELECT registration_id FROM e2ee_devices WHERE account_id=$1 AND device_id=$2 AND enabled=true`,
+      [authAccountId,senderDeviceId]);
+    if(!sender.rowCount) throw new Error('SENDER_DEVICE_NOT_AUTHORIZED');
+    const target = await this.pool.query(
+      `SELECT device_id,registration_id FROM e2ee_devices
+       WHERE account_id=$1 AND device_id=$2 AND identity_type='aci' AND enabled=true`,
+      [envelope.targetUserId,envelope.targetDeviceId]);
+    if(!target.rowCount) throw new Error('TARGET_DEVICE_NOT_AUTHORIZED');
+    if(envelope.recipientRegistrationId!==undefined &&
+       Number(target.rows[0].registration_id)!==Number(envelope.recipientRegistrationId))
+      throw new Error('STALE_DEVICE');
+    if(Array.isArray(envelope.declaredDeviceIds)) {
+      const active=await this.pool.query(
+        `SELECT device_id FROM e2ee_devices WHERE account_id=$1 AND identity_type='aci' AND enabled=true ORDER BY device_id`,
+        [envelope.targetUserId]);
+      const expected=active.rows.map(r=>Number(r.device_id)).sort((a,b)=>a-b);
+      const declared=[...envelope.declaredDeviceIds].map(Number).sort((a,b)=>a-b);
+      if(expected.length!==declared.length||expected.some((id,i)=>id!==declared[i]))
+        throw new Error('DEVICE_SET_MISMATCH');
+    }
     const { rows } = await this.pool.query(
       `INSERT INTO e2ee_mailbox(client_message_id,sender_account_id,sender_device_id,
         target_account_id,target_device_id,identity_type,message_type,content_kind,delivery_class,timestamp_ms,ciphertext,operation_epoch_ms)
@@ -144,7 +165,8 @@ export class DurableRelayRepository {
        FROM e2ee_mailbox WHERE target_account_id=$1 AND target_device_id=$2
        AND delivered_at IS NULL ORDER BY created_at LIMIT $3`,
       [accountId,deviceId,Math.min(Math.max(limit,1),250)]);
-    return rows;
+    return rows.map(row=>({...row,timestamp:Number(row.timestamp),serverTimestamp:Number(row.serverTimestamp),
+      ...(row.operationEpochMilliseconds!==null?{operationEpochMilliseconds:Number(row.operationEpochMilliseconds)}:{})}));
   }
 
   async acknowledge(accountId, deviceId, envelopeId) {
