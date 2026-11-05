@@ -36,11 +36,17 @@ test('REAL FOUR-PARTY CRYPTO: removed Cara retains history but cannot decrypt gr
   for (const client of recipients) {
     client.registerHook('onMessageDecrypted', async event => {
       let payload;
-      try { payload = JSON.parse(event.content); } catch { return; }
+      try { payload = JSON.parse(event.content); }
+      catch { relay.audit.push({op:'decrypted-hook',sender:event.senderId,contentType:typeof event.content,parsed:false}); return; }
       // The SDK wraps the serialized distribution in a JSON string field.
-      if (!payload || typeof payload.senderKeyDistributionMessage !== 'string') return;
+      if (!payload || typeof payload.senderKeyDistributionMessage !== 'string') {
+        relay.audit.push({op:'decrypted-hook',sender:event.senderId,outerKeys:Object.keys(payload ?? {}),distribution:false});
+        return;
+      }
       let parsed;
-      try { parsed = JSON.parse(payload.senderKeyDistributionMessage); } catch { return; }
+      try { parsed = JSON.parse(payload.senderKeyDistributionMessage); }
+      catch { relay.audit.push({op:'decrypted-hook',sender:event.senderId,distributionJson:false}); return; }
+      relay.audit.push({op:'decrypted-hook',sender:event.senderId,distribution:true,fields:Object.keys(parsed ?? {})});
       if (!parsed || typeof parsed !== 'object' || !parsed.senderKeyVersion || !parsed.groupId) return;
       const distribution = {
         senderKeyVersion: parsed.senderKeyVersion,
