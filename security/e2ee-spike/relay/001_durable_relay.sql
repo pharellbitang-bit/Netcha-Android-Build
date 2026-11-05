@@ -120,6 +120,7 @@ CREATE TABLE IF NOT EXISTS e2ee_attachments (
   ciphertext_size BIGINT NOT NULL CHECK(ciphertext_size > 0),
   content_sha256 TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  completed_at TIMESTAMPTZ,
   expires_at TIMESTAMPTZ NOT NULL
 );
 CREATE INDEX IF NOT EXISTS e2ee_attachments_owner ON e2ee_attachments(owner_account_id,conversation_scope);
