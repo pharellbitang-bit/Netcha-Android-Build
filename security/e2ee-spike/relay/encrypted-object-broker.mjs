@@ -7,24 +7,18 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
  * Provider credentials stay on the server; clients receive short-lived URLs.
  */
 export class EncryptedObjectBroker {
-  constructor({ repository, bucket, endpoint, region='auto', accessKeyId, secretAccessKey, forcePathStyle=true }) {
-    if(!repository||!bucket||!endpoint||!accessKeyId||!secretAccessKey) throw new Error('OBJECT_BROKER_CONFIG_REQUIRED');
+  constructor({ repository, authorizeScope, bucket, endpoint, region='auto', accessKeyId, secretAccessKey, forcePathStyle=true }) {
+    if(!repository||typeof authorizeScope!=='function'||!bucket||!endpoint||!accessKeyId||!secretAccessKey) throw new Error('OBJECT_BROKER_CONFIG_REQUIRED');
     this.repository=repository;
+    this.authorizeScope=authorizeScope;
     this.bucket=bucket;
     this.s3=new S3Client({region,endpoint,forcePathStyle,credentials:{accessKeyId,secretAccessKey}});
   }
 
   async assertScopeAccess(accountId,scope) {
-    const parts=String(scope).split(':');
-    if(parts[0]==='private'&&parts.length===3&&parts[1]!==parts[2])
-      return parts.slice(1).includes(accountId);
-    if(parts[0]==='group'&&parts.length===2) {
-      const {rows}=await this.repository.pool.query(
-        `SELECT 1 FROM e2ee_group_members WHERE group_id=$1 AND account_id=$2 AND active=true`,
-        [parts[1],accountId]);
-      return rows.length>0;
-    }
-    return false;
+    // Netcha supplies the authoritative private-chat/group membership check.
+    // A syntactically valid scope string is never treated as authorization.
+    return await this.authorizeScope(accountId,scope) === true;
   }
 
   async createUpload(accountId,{scope,ciphertextSize,sha256}) {
