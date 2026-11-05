@@ -1,5 +1,4 @@
 import { CapacitorSQLite, SQLiteConnection } from '@capacitor-community/sqlite';
-import { SecureStorage } from '@aparajita/capacitor-secure-storage';
 import { CapacitorNativeSignalSecretVault } from './capacitor-native-vault.mjs';
 
 const TABLE = 'netcha_e2ee_kv';
