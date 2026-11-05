@@ -1,6 +1,6 @@
 import { createSignalProtocolClient } from '@open-e2ee/signal-protocol-sdk';
 import { webSqliteStore } from '@open-e2ee/signal-protocol-sdk/local/store/web-sqlite';
-import { CapacitorNativeSignalSecretVault } from './capacitor-native-vault.ts';
+import { CapacitorNativeSignalSecretVault } from './capacitor-native-vault.mjs';
 
 /**
  * Android/iOS WebView client composition.
