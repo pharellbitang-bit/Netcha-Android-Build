@@ -55,6 +55,8 @@ CREATE TABLE IF NOT EXISTS e2ee_mailbox (
   identity_type TEXT NOT NULL DEFAULT 'aci',
   message_type TEXT NOT NULL,
   content_kind TEXT NOT NULL DEFAULT 'message' CHECK (content_kind IN ('message','receipt')),
+  delivery_class TEXT NOT NULL DEFAULT 'user-visible' CHECK (delivery_class IN ('user-visible','background-sync','ephemeral')),
+  timestamp_ms BIGINT NOT NULL DEFAULT 0,
   ciphertext TEXT NOT NULL,
   operation_epoch_ms BIGINT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
