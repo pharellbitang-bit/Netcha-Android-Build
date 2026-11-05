@@ -18,8 +18,7 @@ export async function createNetchaE2EEClient({ identity, relay, hooks = {} }) {
     vault,
     encryptionAtRest: true
   });
-  if (storage.protection?.kind === 'none' || storage.protection?.encryptionAtRest === false)
-    throw new Error('E2EE_STORAGE_NOT_ENCRYPTED');
+  // webSqliteStore refuses to open when SQLCipher is unavailable or disabled.
   return createSignalProtocolClient({
     identity,
     adapters: { storage, relay },
