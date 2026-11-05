@@ -10,18 +10,25 @@ export class DurableRelayRepository {
 
   async registerDevice(accountId, identityType = 'aci') {
     if (!accountId) throw new Error('AUTH_REQUIRED');
-    const { rows } = await this.pool.query(
-      `SELECT device_id FROM e2ee_devices
-       WHERE account_id=$1 AND identity_type=$2 AND enabled=true
-       ORDER BY device_id FOR UPDATE`, [accountId, identityType]);
-    const used = new Set(rows.map(r => Number(r.device_id)));
-    let deviceId = 1;
-    while (used.has(deviceId) && deviceId <= 5) deviceId++;
-    if (deviceId > 5) throw new Error('DEVICE_LIMIT_REACHED');
-    await this.pool.query(
-      `INSERT INTO e2ee_devices(account_id,device_id,identity_type)
-       VALUES($1,$2,$3)`, [accountId, deviceId, identityType]);
-    return deviceId;
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query('SELECT pg_advisory_xact_lock(hashtext($1))',[accountId+':'+identityType]);
+      const { rows } = await client.query(
+        `SELECT device_id FROM e2ee_devices
+         WHERE account_id=$1 AND identity_type=$2 AND enabled=true
+         ORDER BY device_id FOR UPDATE`, [accountId, identityType]);
+      const used = new Set(rows.map(r => Number(r.device_id)));
+      let deviceId = 1;
+      while (used.has(deviceId) && deviceId <= 5) deviceId++;
+      if (deviceId > 5) throw new Error('DEVICE_LIMIT_REACHED');
+      await client.query(
+        `INSERT INTO e2ee_devices(account_id,device_id,identity_type)
+         VALUES($1,$2,$3)`, [accountId, deviceId, identityType]);
+      await client.query('COMMIT');
+      return deviceId;
+    } catch(e) { await client.query('ROLLBACK'); throw e; }
+    finally { client.release(); }
   }
 
   async publishIdentity(accountId, deviceId, identityType, publicKey) {
@@ -142,6 +149,41 @@ export class DurableRelayRepository {
       [accountId,deviceId,identityType]);
   }
 
+  async enqueueGroupEnvelope(authAccountId, senderDeviceId, envelope) {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const group = await client.query(
+        `SELECT state_version,sender_key_epoch FROM e2ee_groups WHERE group_id=$1 FOR SHARE`,
+        [envelope.groupId]);
+      if (!group.rowCount) throw new Error('GROUP_NOT_FOUND');
+      if (Number(group.rows[0].state_version)!==Number(envelope.stateVersion) ||
+          Number(group.rows[0].sender_key_epoch)!==Number(envelope.senderKeyEpoch))
+        throw new Error('STALE_GROUP_EPOCH');
+      const sender = await client.query(
+        `SELECT 1 FROM e2ee_group_members WHERE group_id=$1 AND account_id=$2 AND active=true`,
+        [envelope.groupId,authAccountId]);
+      const target = await client.query(
+        `SELECT 1 FROM e2ee_group_members gm JOIN e2ee_devices d
+         ON d.account_id=gm.account_id AND d.enabled=true
+         WHERE gm.group_id=$1 AND gm.account_id=$2 AND gm.active=true
+         AND d.device_id=$3`,[envelope.groupId,envelope.targetUserId,envelope.targetDeviceId]);
+      if (!sender.rowCount || !target.rowCount) throw new Error('GROUP_DEVICE_NOT_AUTHORIZED');
+      const { rows } = await client.query(
+        `INSERT INTO e2ee_group_envelopes(group_id,state_version,sender_key_epoch,
+         sender_account_id,sender_device_id,target_account_id,target_device_id,client_message_id,ciphertext)
+         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)
+         ON CONFLICT(target_account_id,target_device_id,client_message_id)
+         DO UPDATE SET client_message_id=EXCLUDED.client_message_id
+         RETURNING id,client_message_id,created_at`,
+        [envelope.groupId,envelope.stateVersion,envelope.senderKeyEpoch,authAccountId,
+         senderDeviceId,envelope.targetUserId,envelope.targetDeviceId,envelope.id,envelope.ciphertext]);
+      await client.query('COMMIT');
+      return rows[0];
+    } catch(e) { await client.query('ROLLBACK'); throw e; }
+    finally { client.release(); }
+  }
+
   // Membership state is opaque ciphertext. Removal increments sender_key_epoch
   // in the same transaction; callers must rotate and redistribute before send.
   async commitGroupChange(groupId, actorAccountId, expectedVersion, encryptedState, encryptedChange, membershipOps) {
@@ -151,6 +193,11 @@ export class DurableRelayRepository {
       const { rows } = await client.query(
         `SELECT state_version,sender_key_epoch FROM e2ee_groups WHERE group_id=$1 FOR UPDATE`,[groupId]);
       if (!rows[0] || Number(rows[0].state_version) !== Number(expectedVersion)) throw new Error('GROUP_VERSION_CONFLICT');
+      const actor = await client.query(
+        `SELECT role FROM e2ee_group_members WHERE group_id=$1 AND account_id=$2
+         AND active=true FOR UPDATE`,[groupId,actorAccountId]);
+      if (!actor.rowCount || !['owner','admin'].includes(actor.rows[0].role))
+        throw new Error('GROUP_CHANGE_FORBIDDEN');
       const nextVersion = Number(expectedVersion)+1;
       const removes = membershipOps.filter(x=>x.action==='remove');
       const adds = membershipOps.filter(x=>x.action==='add');
