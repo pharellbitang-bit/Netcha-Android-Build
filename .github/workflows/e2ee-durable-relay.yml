@@ -40,4 +40,4 @@ jobs:
         run: npm install --ignore-scripts
       - name: Run PostgreSQL durability, prekey and group-revocation tests
         working-directory: security/e2ee-spike
-        run: node --test test/durable-relay.test.mjs
+        run: node --test test/*.test.mjs
