@@ -12,11 +12,11 @@ test('durable relay persists mailboxes, atomically consumes prekeys and rotates 
   await pool.query(schema);
   const repo = new DurableRelayRepository(pool);
   const suffix = crypto.randomUUID();
-  const alice = 'alice-'+suffix, bob = 'bob-'+suffix, cara = 'cara-'+suffix;
-  const [aliceDevice,bobDevice,caraDevice] = await Promise.all([
-    repo.registerDevice(alice),repo.registerDevice(bob),repo.registerDevice(cara)
+  const alice = 'alice-'+suffix, bob = 'bob-'+suffix, cara = 'cara-'+suffix, david = 'david-'+suffix;
+  const [aliceDevice,bobDevice,caraDevice,davidDevice] = await Promise.all([
+    repo.registerDevice(alice),repo.registerDevice(bob),repo.registerDevice(cara),repo.registerDevice(david)
   ]);
-  t.after(async()=>{await pool.query('DELETE FROM e2ee_devices WHERE account_id = ANY($1)',[[alice,bob,cara]]);await pool.query('DELETE FROM e2ee_account_identities WHERE account_id = ANY($1)',[[alice,bob,cara]]);await pool.query('DELETE FROM e2ee_groups WHERE group_id=$1',['g-'+suffix]);await pool.end()});
+  t.after(async()=>{await pool.query('DELETE FROM e2ee_devices WHERE account_id = ANY($1)',[[alice,bob,cara,david]]);await pool.query('DELETE FROM e2ee_account_identities WHERE account_id = ANY($1)',[[alice,bob,cara,david]]);await pool.query('DELETE FROM e2ee_groups WHERE group_id=$1',['g-'+suffix]);await pool.end()});
 
   const publicKey=Buffer.alloc(32).toString('base64');
   const identity={version:1,x25519PublicKey:publicKey,ed25519PublicKey:publicKey};
@@ -59,8 +59,8 @@ test('durable relay persists mailboxes, atomically consumes prekeys and rotates 
     [groupId,JSON.stringify({ciphertext:'opaque-state'}),alice]);
   await pool.query(
     `INSERT INTO e2ee_group_members(group_id,account_id,role,active,joined_version)
-     VALUES($1,$2,'owner',true,1),($1,$3,'member',true,1),($1,$4,'member',true,1)`,
-    [groupId,alice,bob,cara]);
+     VALUES($1,$2,'owner',true,1),($1,$3,'member',true,1),($1,$4,'member',true,1),($1,$5,'member',true,1)`,
+    [groupId,alice,bob,cara,david]);
   const change=await durable.commitGroupChange(groupId,alice,0,{ciphertext:'state-v2'},
     {ciphertext:'member-removed'},[{action:'remove',accountId:cara}]);
   assert.equal(change.version,1);
@@ -83,8 +83,17 @@ test('durable relay persists mailboxes, atomically consumes prekeys and rotates 
       targetUserId:bob,targetDeviceId:bobDevice,id:'stale-epoch-'+suffix,ciphertext:'ciphertext'}),
     /STALE_GROUP_EPOCH/
   );
+  await assert.rejects(
+    durable.enqueueGroupEnvelope(alice,aliceDevice,{groupId,stateVersion:1,senderKeyEpoch:2,
+      targetUserId:cara,targetDeviceId:caraDevice,id:'removed-recipient-'+suffix,ciphertext:'ciphertext'}),
+    /GROUP_DEVICE_NOT_AUTHORIZED/
+  );
   await durable.enqueueGroupEnvelope(alice,aliceDevice,{groupId,stateVersion:1,senderKeyEpoch:2,
-    targetUserId:bob,targetDeviceId:bobDevice,id:'valid-group-'+suffix,ciphertext:'group-ciphertext'});
-  const groupEnvelope=await pool.query('SELECT ciphertext FROM e2ee_group_envelopes WHERE group_id=$1',[groupId]);
-  assert.equal(groupEnvelope.rows[0].ciphertext,'group-ciphertext');
+    targetUserId:bob,targetDeviceId:bobDevice,id:'valid-group-bob-'+suffix,ciphertext:'group-ciphertext-bob'});
+  await durable.enqueueGroupEnvelope(alice,aliceDevice,{groupId,stateVersion:1,senderKeyEpoch:2,
+    targetUserId:david,targetDeviceId:davidDevice,id:'valid-group-david-'+suffix,ciphertext:'group-ciphertext-david'});
+  const groupEnvelope=await pool.query('SELECT target_user_id,ciphertext FROM e2ee_group_envelopes WHERE group_id=$1 ORDER BY target_user_id',[groupId]);
+  assert.deepEqual(groupEnvelope.rows.map(row=>row.target_user_id).sort(),[bob,david].sort(),
+    'only the two remaining members can receive post-revocation group envelopes');
+  assert.deepEqual(groupEnvelope.rows.map(row=>row.ciphertext).sort(),['group-ciphertext-bob','group-ciphertext-david'].sort());
 });
