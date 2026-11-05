@@ -18,7 +18,7 @@ const decodeBytes=value=>typeof value==='string'?new Uint8Array(Buffer.from(valu
  * { accountId, deviceId? }. This module never trusts account IDs in writes.
  * Use HTTPS at the reverse proxy; do not expose the PostgreSQL pool.
  */
-export function createNetchaDurableRelayServer({ repository, authenticate, logger = () => {} }) {
+export function createNetchaDurableRelayServer({ repository, authenticate, objectBroker = null, logger = () => {} }) {
   if(typeof authenticate!=='function') throw new Error('AUTHENTICATOR_REQUIRED');
   return createServer(async(req,res)=>{
     try{
@@ -105,6 +105,19 @@ export function createNetchaDurableRelayServer({ repository, authenticate, logge
         const result=await repository.commitGroupChange(decodeURIComponent(match[1]),accountId,
           body.expectedVersion,body.encryptedGroupState,body.encryptedChange,body.membershipOps??[]);
         return json(res,200,result);
+      }
+
+      if(objectBroker&&req.method==='POST'&&url.pathname==='/v1/e2ee/attachments/upload'){
+        return json(res,201,await objectBroker.createUpload(accountId,body));
+      }
+      if(objectBroker&&(match=url.pathname.match(/^\\/v1\\/e2ee\\/attachments\\/([^/]+)\\/complete$/))&&req.method==='POST'){
+        return json(res,200,await objectBroker.completeUpload(accountId,match[1]));
+      }
+      if(objectBroker&&(match=url.pathname.match(/^\\/v1\\/e2ee\\/attachments\\/([^/]+)\\/download$/))&&req.method==='GET'){
+        return json(res,200,await objectBroker.createDownload(accountId,match[1]));
+      }
+      if(objectBroker&&(match=url.pathname.match(/^\\/v1\\/e2ee\\/attachments\\/([^/]+)$/))&&req.method==='DELETE'){
+        return json(res,200,await objectBroker.deleteAttachment(accountId,match[1]));
       }
       return json(res,404,{error:'ROUTE_NOT_FOUND'});
     }catch(error){
