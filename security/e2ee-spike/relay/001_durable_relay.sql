@@ -8,10 +8,22 @@ CREATE TABLE IF NOT EXISTS e2ee_devices (
   device_id INTEGER NOT NULL CHECK (device_id BETWEEN 1 AND 5),
   identity_type TEXT NOT NULL DEFAULT 'aci' CHECK (identity_type IN ('aci','pni')),
   enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  registration_id INTEGER NOT NULL DEFAULT 0,
+  encrypted_device_name BYTEA,
+  device_type TEXT CHECK (device_type IN ('mobile','desktop','tablet','web')),
   identity_public_key JSONB,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (account_id, device_id, identity_type)
+);
+
+CREATE TABLE IF NOT EXISTS e2ee_account_identities (
+  account_id TEXT NOT NULL,
+  identity_type TEXT NOT NULL DEFAULT 'aci' CHECK (identity_type IN ('aci','pni')),
+  identity_public_key JSONB NOT NULL,
+  revision BIGINT NOT NULL DEFAULT 1,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(account_id,identity_type)
 );
 
 CREATE TABLE IF NOT EXISTS e2ee_prekeys (
