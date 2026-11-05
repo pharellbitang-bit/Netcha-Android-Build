@@ -18,20 +18,24 @@ test('durable relay persists mailboxes, atomically consumes prekeys and rotates 
   ]);
   t.after(async()=>{await pool.query('DELETE FROM e2ee_devices WHERE account_id = ANY($1)',[[alice,bob,cara]]);await pool.query('DELETE FROM e2ee_groups WHERE group_id=$1',['g-'+suffix]);await pool.end()});
 
-  await repo.publishIdentity(bob,bobDevice,'aci',{identityKey:'public-only'});
+  const publicKey=Buffer.alloc(32).toString('base64');
+  await repo.provisionIdentityKey({userId:bob,deviceId:bobDevice,registrationId:77,
+    identity:{version:1,x25519PublicKey:publicKey,ed25519PublicKey:publicKey}});
   await repo.uploadPrekeys(bob,bobDevice,'aci',[
-    {type:'ecSignedPreKey',keyId:1,publicKey:'ec-signed-public'},
-    {type:'kemLastResortPreKey',keyId:2,publicKey:'kem-last-public'},
-    {type:'ecPreKey',keyId:3,publicKey:'ec-onetime-1'},
-    {type:'ecPreKey',keyId:4,publicKey:'ec-onetime-2'},
-    {type:'kemOneTimePreKey',keyId:5,publicKey:'kem-onetime-1'},
-    {type:'kemOneTimePreKey',keyId:6,publicKey:'kem-onetime-2'}
+    {type:'ecSignedPreKey',keyId:1,publicKey:publicKey,signature:'c2lnbmF0dXJl'},
+    {type:'kemLastResortPreKey',keyId:2,publicKey:publicKey,signature:'c2lnbmF0dXJl'},
+    {type:'ecPreKey',keyId:3,publicKey:publicKey},
+    {type:'ecPreKey',keyId:4,publicKey:publicKey},
+    {type:'kemOneTimePreKey',keyId:5,publicKey:publicKey,signature:'c2lnbmF0dXJl'},
+    {type:'kemOneTimePreKey',keyId:6,publicKey:publicKey,signature:'c2lnbmF0dXJl'}
   ]);
   const [bundleA,bundleB] = await Promise.all([
     repo.fetchPrekeyBundle(bob,bobDevice),repo.fetchPrekeyBundle(bob,bobDevice)
   ]);
-  assert.notEqual(bundleA.ecPreKey?.key_id,bundleB.ecPreKey?.key_id);
-  assert.notEqual(bundleA.kemOneTimePreKey?.key_id,bundleB.kemOneTimePreKey?.key_id);
+  assert.notEqual(bundleA.ecPreKey?.keyId,bundleB.ecPreKey?.keyId);
+  assert.notEqual(bundleA.kemOneTimePreKey?.keyId,bundleB.kemOneTimePreKey?.keyId);
+  assert.equal(bundleA.registrationId,77);
+  assert.equal(bundleA.identity.version,1);
 
   const envelope = {id:'client-'+suffix,senderUserId:alice,targetUserId:bob,targetDeviceId:bobDevice,
     messageType:'ciphertext',ciphertext:'opaque-ciphertext-fixture'};
