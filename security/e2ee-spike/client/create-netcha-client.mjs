@@ -3,6 +3,7 @@ import { keyValueStore } from '@open-e2ee/signal-protocol-sdk/local/store/key-va
 import { CapacitorNativeSignalSecretVault } from './capacitor-native-vault.mjs';
 import { CapacitorSqlCipherKeyValueBackend } from './capacitor-sqlcipher-kv-backend.mjs';
 import { NetchaDurableSignalRelay } from './http-relay-adapter.mjs';
+import { attachPersistentEncryptedOutbox } from './persistent-encrypted-outbox.mjs';
 
 /**
  * Android/iOS WebView client composition.
@@ -25,9 +26,18 @@ export async function createNetchaE2EEClient({ identity, relay, relayUrl, getAcc
   const storage = await keyValueStore({ storage: backend, vault });
   if (!storage.protection) throw new Error('E2EE_STORAGE_PROTECTION_UNDECLARED');
 
-  return createSignalProtocolClient({
+  // Outgoing envelopes are already encrypted by the Signal client. Persist
+  // only those ciphertext envelopes in a separate SQLCipher namespace before
+  // network transmission, then retry automatically after mailbox polling
+  // succeeds on reconnection. There is no plaintext/localStorage fallback.
+  const outboxBackend = await CapacitorSqlCipherKeyValueBackend.open({
+    namespace: namespace + ':outbox'
+  });
+  const offline = attachPersistentEncryptedOutbox(durableRelay, outboxBackend);
+  const client = await createSignalProtocolClient({
     identity,
-    adapters: { storage, relay: durableRelay },
+    adapters: { storage, relay: offline.relay },
     hooks
   });
+  return client;
 }
