@@ -30,6 +30,10 @@ test('REAL THREE-PARTY CRYPTO: removed Cara decrypts history but cannot decrypt 
   });
 
   await Promise.all(clients.map(client => client.syncToServer()));
+  // The SDK requires this hook before a relay subscription can process
+  // pairwise-encrypted sender-key distribution envelopes.
+  bob.registerHook('onMessageDecrypted', async () => {});
+  cara.registerHook('onMessageDecrypted', async () => {});
   bob.startRelaySubscription();
   cara.startRelaySubscription();
   const groupId = 'netcha-revocation-' + randomUUID();
