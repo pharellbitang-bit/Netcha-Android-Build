@@ -75,5 +75,16 @@ export class NetchaDurableSignalRelay {
   async getPreKeyInventory(userId,deviceId,identityType='aci'){if(userId!==this.userId||deviceId!==this.deviceId)throw new Error('DEVICE_MISMATCH');return (await this.request('/v1/e2ee/prekeys/inventory?identityType='+identityType)).inventory}
   async clearStaleKemPreKeys(userId,deviceId,identityType='aci'){if(userId!==this.userId||deviceId!==this.deviceId)throw new Error('DEVICE_MISMATCH');return this.request('/v1/e2ee/prekeys/clear-stale-kem',{method:'POST',body:{identityType}})}
   async publishPlannedPreKeys(userId,deviceId,plan,identityType='aci'){const inventory=await this.getPreKeyInventory(userId,deviceId,identityType);const keys=await plan(inventory);if(keys.length)await this.uploadPreKeys(userId,deviceId,keys,identityType)}
+  async getEcSignedPreKeyMetadata(userId,deviceId,identityType='aci'){
+    return (await this.request('/v1/e2ee/prekeys/metadata?userId='+encodeURIComponent(userId)+'&deviceId='+deviceId+'&type=ecSignedPreKey&identityType='+identityType)).metadata;
+  }
+  async getKemLastResortPreKeyMetadata(userId,deviceId,identityType='aci'){
+    return (await this.request('/v1/e2ee/prekeys/metadata?userId='+encodeURIComponent(userId)+'&deviceId='+deviceId+'&type=kemLastResortPreKey&identityType='+identityType)).metadata;
+  }
+  async commitMembershipChange({groupId,actorAccountId,removedAccountId,expectedVersion,encryptedGroupState,encryptedChange}){
+    if(actorAccountId!==this.userId) throw new Error('ACCOUNT_MISMATCH');
+    return this.request('/v1/e2ee/groups/'+encodeURIComponent(groupId)+'/changes',{method:'POST',
+      body:{expectedVersion,encryptedGroupState,encryptedChange,membershipOps:[{action:'remove',accountId:removedAccountId}]}});
+  }
   async getActiveDevices(userId){return (await this.request('/v1/e2ee/devices/'+encodeURIComponent(userId)+'/active')).devices}
 }
