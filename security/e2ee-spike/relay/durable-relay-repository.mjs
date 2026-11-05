@@ -297,6 +297,22 @@ export class DurableRelayRepository {
     if(keys.length) await this.uploadPrekeys(accountId,deviceId,identityType,keys);
   }
 
+  async createGroup(groupId,creatorAccountId,encryptedState,memberAccountIds=[]) {
+    const client=await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(
+        `INSERT INTO e2ee_groups(group_id,encrypted_state,created_by)
+         VALUES($1,$2::jsonb,$3)`,[groupId,JSON.stringify(encryptedState),creatorAccountId]);
+      const members=new Set([creatorAccountId,...memberAccountIds]);
+      for(const accountId of members) await client.query(
+        `INSERT INTO e2ee_group_members(group_id,account_id,role,active,joined_version)
+         VALUES($1,$2,$3,true,0)`,[groupId,accountId,accountId===creatorAccountId?'owner':'member']);
+      await client.query('COMMIT');
+    } catch(e) { await client.query('ROLLBACK'); throw e; }
+    finally { client.release(); }
+  }
+
   async enqueueGroupEnvelope(authAccountId, senderDeviceId, envelope) {
     const client = await this.pool.connect();
     try {
