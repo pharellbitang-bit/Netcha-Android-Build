@@ -191,8 +191,8 @@ export class DurableRelayRepository {
     try {
       await client.query('BEGIN');
       const device=await client.query(
-        `SELECT 1 FROM e2ee_devices WHERE account_id=$1 AND device_id=$2 AND enabled=true FOR UPDATE`,
-        [request.userId,request.deviceId]);
+        `SELECT 1 FROM e2ee_devices WHERE account_id=$1 AND device_id=$2 AND identity_type=$3 AND enabled=true FOR UPDATE`,
+        [request.userId,request.deviceId,identityType]);
       if(!device.rowCount) throw new Error('DEVICE_NOT_OWNED');
       const existing=await client.query(
         `SELECT identity_public_key FROM e2ee_account_identities
