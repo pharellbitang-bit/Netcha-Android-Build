@@ -251,9 +251,10 @@ export class DurableRelayRepository {
          WHERE account_id=$1 AND identity_type=$2`,
         [request.userId,identityType,JSON.stringify(request.identity)]);
       await client.query(
-        `UPDATE e2ee_devices SET identity_public_key=$3::jsonb,registration_id=$4,updated_at=now()
+        `UPDATE e2ee_devices SET identity_public_key=$4::jsonb,
+         registration_id=CASE WHEN device_id=$3 THEN $5 ELSE registration_id END,updated_at=now()
          WHERE account_id=$1 AND identity_type=$2`,
-        [request.userId,identityType,JSON.stringify(request.identity),request.registrationId]);
+        [request.userId,identityType,request.deviceId,JSON.stringify(request.identity),request.registrationId]);
       await client.query(
         `DELETE FROM e2ee_prekeys WHERE account_id=$1 AND identity_type=$2`,[request.userId,identityType]);
       await client.query('COMMIT');
