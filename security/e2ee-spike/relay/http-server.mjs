@@ -29,6 +29,7 @@ export function createNetchaDurableRelayServer({ repository, authenticate, objec
       const accountId=principal.accountId;
       const ownDevice=principal.deviceId;
       const body=['POST','PUT','PATCH'].includes(req.method)?await readBody(req):{};
+      const pathParts=url.pathname.split('/');
       let match;
 
       if(req.method==='POST'&&url.pathname==='/v1/e2ee/devices/register'){
@@ -110,14 +111,14 @@ export function createNetchaDurableRelayServer({ repository, authenticate, objec
       if(objectBroker&&req.method==='POST'&&url.pathname==='/v1/e2ee/attachments/upload'){
         return json(res,201,await objectBroker.createUpload(accountId,body));
       }
-      if(objectBroker&&(match=url.pathname.match(/^\\/v1\\/e2ee\\/attachments\\/([^/]+)\\/complete$/))&&req.method==='POST'){
-        return json(res,200,await objectBroker.completeUpload(accountId,match[1]));
+      if(objectBroker&&req.method==='POST'&&pathParts.length===6&&pathParts[1]==='v1'&&pathParts[2]==='e2ee'&&pathParts[3]==='attachments'&&pathParts[5]==='complete'){
+        return json(res,200,await objectBroker.completeUpload(accountId,pathParts[4]));
       }
-      if(objectBroker&&(match=url.pathname.match(/^\\/v1\\/e2ee\\/attachments\\/([^/]+)\\/download$/))&&req.method==='GET'){
-        return json(res,200,await objectBroker.createDownload(accountId,match[1]));
+      if(objectBroker&&req.method==='GET'&&pathParts.length===6&&pathParts[1]==='v1'&&pathParts[2]==='e2ee'&&pathParts[3]==='attachments'&&pathParts[5]==='download'){
+        return json(res,200,await objectBroker.createDownload(accountId,pathParts[4]));
       }
-      if(objectBroker&&(match=url.pathname.match(/^\\/v1\\/e2ee\\/attachments\\/([^/]+)$/))&&req.method==='DELETE'){
-        return json(res,200,await objectBroker.deleteAttachment(accountId,match[1]));
+      if(objectBroker&&req.method==='DELETE'&&pathParts.length===5&&pathParts[1]==='v1'&&pathParts[2]==='e2ee'&&pathParts[3]==='attachments'){
+        return json(res,200,await objectBroker.deleteAttachment(accountId,pathParts[4]));
       }
       return json(res,404,{error:'ROUTE_NOT_FOUND'});
     }catch(error){
