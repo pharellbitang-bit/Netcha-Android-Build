@@ -75,17 +75,20 @@ export class DurableRelayRepository {
          AND key_type IN ('ecSignedPreKey','kemLastResortPreKey')
          AND consumed_at IS NULL ORDER BY id DESC`,
         [accountId,deviceId,identityType]);
-      const oneTime = await client.query(
-        `WITH picked AS (
-           SELECT id FROM e2ee_prekeys WHERE account_id=$1 AND device_id=$2
-             AND identity_type=$3 AND key_type IN ('ecPreKey','kemOneTimePreKey')
-             AND consumed_at IS NULL ORDER BY id
-             FOR UPDATE SKIP LOCKED LIMIT 2
-         )
-         UPDATE e2ee_prekeys p SET consumed_at=now()
-         FROM picked WHERE p.id=picked.id
-         RETURNING p.key_type,p.key_id,p.public_key,p.signature`,
-        [accountId,deviceId,identityType]);
+      const oneTime = [];
+      for (const keyType of ['ecPreKey','kemOneTimePreKey']) {
+        const claimed = await client.query(
+          `WITH picked AS (
+             SELECT id FROM e2ee_prekeys WHERE account_id=$1 AND device_id=$2
+               AND identity_type=$3 AND key_type=$4 AND consumed_at IS NULL
+             ORDER BY id FOR UPDATE SKIP LOCKED LIMIT 1
+           )
+           UPDATE e2ee_prekeys p SET consumed_at=now()
+           FROM picked WHERE p.id=picked.id
+           RETURNING p.key_type,p.key_id,p.public_key,p.signature`,
+          [accountId,deviceId,identityType,keyType]);
+        oneTime.push(...claimed.rows);
+      }
       const result = { identity: dev.rows[0].identity_public_key };
       for (const p of fixed.rows) result[p.key_type] = p;
       for (const p of oneTime.rows) result[p.key_type] = p;
