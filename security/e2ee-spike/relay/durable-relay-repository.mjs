@@ -1,4 +1,17 @@
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash, timingSafeEqual } from 'node:crypto';
+
+function identityBytes(identity) {
+  if (identity?.version !== 1) throw new Error('UNSUPPORTED_IDENTITY_VERSION');
+  const dh = Buffer.from(identity.x25519PublicKey ?? '', 'base64');
+  const signing = Buffer.from(identity.ed25519PublicKey ?? '', 'base64');
+  if (dh.length !== 32 || signing.length !== 32) throw new Error('INVALID_COMPOSITE_IDENTITY');
+  if (dh.toString('base64') !== identity.x25519PublicKey || signing.toString('base64') !== identity.ed25519PublicKey)
+    throw new Error('NON_CANONICAL_COMPOSITE_IDENTITY');
+  return Buffer.concat([Buffer.from([1,1]),dh,Buffer.from([2]),signing]);
+}
+function identityCommitment(identity) {
+  return createHash('sha256').update('signal-protocol-js composite identity v1').update(identityBytes(identity)).digest();
+}
 
 /**
  * PostgreSQL persistence primitives for the Netcha E2EE relay.
@@ -8,11 +21,12 @@ import { randomUUID } from 'node:crypto';
 export class DurableRelayRepository {
   constructor(pool) { this.pool = pool; }
 
-  async registerDevice(accountId, identityType = 'aci') {
+  async registerDevice(accountId, device = {}) {
     if (!accountId) throw new Error('AUTH_REQUIRED');
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
+      const identityType='aci';
       await client.query('SELECT pg_advisory_xact_lock(hashtext($1))',[accountId+':'+identityType]);
       const { rows } = await client.query(
         `SELECT device_id FROM e2ee_devices
@@ -89,10 +103,10 @@ export class DurableRelayRepository {
           [accountId,deviceId,identityType,keyType]);
         oneTime.push(...claimed.rows);
       }
-      const result = { identity: dev.rows[0].identity_public_key };
+      const result = { registrationId:dev.rows[0].registration_id, deviceId, identity:dev.rows[0].identity_public_key };
       for (const p of fixed.rows) result[p.key_type] = p;
       for (const p of oneTime.rows) result[p.key_type] = p;
-      if (!result.ecSignedPreKey || !result.kemLastResortPreKey) throw new Error('PREKEYS_NOT_READY');
+      if (!result.ecSignedPreKey || (!result.kemLastResortPreKey && !result.kemOneTimePreKey)) throw new Error('PREKEYS_NOT_READY');
       await client.query('COMMIT');
       return result;
     } catch (e) { await client.query('ROLLBACK'); throw e; }
@@ -150,6 +164,136 @@ export class DurableRelayRepository {
       `UPDATE e2ee_mailbox SET delivered_at=now()
        WHERE target_account_id=$1 AND target_device_id=$2 AND identity_type=$3 AND delivered_at IS NULL`,
       [accountId,deviceId,identityType]);
+  }
+
+  async getDevices(accountId) {
+    const {rows}=await this.pool.query(
+      `SELECT device_id,enabled,registration_id,encrypted_device_name,device_type,created_at
+       FROM e2ee_devices WHERE account_id=$1 AND enabled=true ORDER BY device_id`,[accountId]);
+    return rows.map(r=>({deviceId:r.device_id,registered:r.registration_id>0,linked:r.device_id!==1,
+      enabled:r.enabled,...(r.encrypted_device_name?{encryptedDeviceName:r.encrypted_device_name}:{}),
+      ...(r.device_type?{deviceType:r.device_type}:{}),createdAt:new Date(r.created_at).getTime()}));
+  }
+
+  async getActiveDevices(accountId) {
+    const {rows}=await this.pool.query(
+      `SELECT account_id AS "userId",device_id AS "deviceId" FROM e2ee_devices
+       WHERE account_id=$1 AND enabled=true AND registration_id>0 ORDER BY device_id`,[accountId]);
+    return rows;
+  }
+
+  async provisionIdentityKey(request) {
+    const identity=request.identity;
+    identityBytes(identity);
+    const identityType=request.identityType ?? 'aci';
+    const client=await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const device=await client.query(
+        `SELECT 1 FROM e2ee_devices WHERE account_id=$1 AND device_id=$2 AND enabled=true FOR UPDATE`,
+        [request.userId,request.deviceId]);
+      if(!device.rowCount) throw new Error('DEVICE_NOT_OWNED');
+      const existing=await client.query(
+        `SELECT identity_public_key FROM e2ee_account_identities
+         WHERE account_id=$1 AND identity_type=$2 FOR UPDATE`,[request.userId,identityType]);
+      if(existing.rowCount && !Buffer.from(identityBytes(existing.rows[0].identity_public_key)).equals(identityBytes(identity)))
+        throw new Error('IDENTITY_TUPLE_MISMATCH');
+      if(!existing.rowCount) await client.query(
+        `INSERT INTO e2ee_account_identities(account_id,identity_type,identity_public_key)
+         VALUES($1,$2,$3::jsonb)`,[request.userId,identityType,JSON.stringify(identity)]);
+      await client.query(
+        `UPDATE e2ee_devices SET identity_public_key=$4::jsonb,registration_id=$5,updated_at=now()
+         WHERE account_id=$1 AND device_id=$2 AND identity_type=$3`,
+        [request.userId,request.deviceId,identityType,JSON.stringify(identity),request.registrationId]);
+      await client.query('COMMIT');
+    } catch(e) { await client.query('ROLLBACK'); throw e; }
+    finally { client.release(); }
+  }
+
+  async rotateIdentityKey(request) {
+    const identityType=request.identityType ?? 'aci';
+    const expected=Buffer.from(request.expectedCurrentCommitment);
+    const client=await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const existing=await client.query(
+        `SELECT identity_public_key FROM e2ee_account_identities
+         WHERE account_id=$1 AND identity_type=$2 FOR UPDATE`,[request.userId,identityType]);
+      if(!existing.rowCount) throw new Error('IDENTITY_NOT_FOUND');
+      const current=identityCommitment(existing.rows[0].identity_public_key);
+      if(expected.length!==current.length || !timingSafeEqual(expected,current)) throw new Error('IDENTITY_COMMITMENT_MISMATCH');
+      identityBytes(request.identity);
+      await client.query(
+        `UPDATE e2ee_account_identities SET identity_public_key=$3::jsonb,revision=revision+1,updated_at=now()
+         WHERE account_id=$1 AND identity_type=$2`,
+        [request.userId,identityType,JSON.stringify(request.identity)]);
+      await client.query(
+        `UPDATE e2ee_devices SET identity_public_key=$3::jsonb,registration_id=$4,updated_at=now()
+         WHERE account_id=$1 AND identity_type=$2`,
+        [request.userId,identityType,JSON.stringify(request.identity),request.registrationId]);
+      await client.query(
+        `DELETE FROM e2ee_prekeys WHERE account_id=$1 AND identity_type=$2`,[request.userId,identityType]);
+      await client.query('COMMIT');
+    } catch(e) { await client.query('ROLLBACK'); throw e; }
+    finally { client.release(); }
+  }
+
+  async getIdentityKey(accountId,identityType='aci') {
+    const {rows}=await this.pool.query(
+      `SELECT identity_public_key FROM e2ee_account_identities WHERE account_id=$1 AND identity_type=$2`,
+      [accountId,identityType]);
+    return rows[0]?.identity_public_key ?? null;
+  }
+
+  async getPreKeyCount(accountId,deviceId,type,identityType='aci') {
+    const keyType=type==='ec'?'ecPreKey':'kemOneTimePreKey';
+    const {rows}=await this.pool.query(
+      `SELECT count(*)::int AS count FROM e2ee_prekeys WHERE account_id=$1 AND device_id=$2
+       AND identity_type=$3 AND key_type=$4 AND consumed_at IS NULL`,
+      [accountId,deviceId,identityType,keyType]);
+    return rows[0].count;
+  }
+
+  async getPreKeyInventory(accountId,deviceId,identityType='aci') {
+    const [ec,kem,counts]=await Promise.all([
+      this.getEcSignedPreKeyMetadata(accountId,deviceId,identityType),
+      this.getKemLastResortPreKeyMetadata(accountId,deviceId,identityType),
+      this.pool.query(`SELECT key_type,count(*)::int AS count FROM e2ee_prekeys
+        WHERE account_id=$1 AND device_id=$2 AND identity_type=$3 AND consumed_at IS NULL
+        GROUP BY key_type`,[accountId,deviceId,identityType])
+    ]);
+    const map=new Map(counts.rows.map(r=>[r.key_type,r.count]));
+    return {ecSignedPreKey:ec,kemLastResortPreKey:kem,
+      ecOneTimePreKeyCount:map.get('ecPreKey')??0,kemOneTimePreKeyCount:map.get('kemOneTimePreKey')??0};
+  }
+
+  async getEcSignedPreKeyMetadata(accountId,deviceId,identityType='aci') {
+    return this.prekeyMetadata(accountId,deviceId,identityType,'ecSignedPreKey');
+  }
+  async getKemLastResortPreKeyMetadata(accountId,deviceId,identityType='aci') {
+    return this.prekeyMetadata(accountId,deviceId,identityType,'kemLastResortPreKey');
+  }
+  async prekeyMetadata(accountId,deviceId,identityType,keyType) {
+    const {rows}=await this.pool.query(
+      `SELECT key_id,public_key,created_at FROM e2ee_prekeys WHERE account_id=$1 AND device_id=$2
+       AND identity_type=$3 AND key_type=$4 ORDER BY id DESC LIMIT 1`,
+      [accountId,deviceId,identityType,keyType]);
+    if(!rows[0]) return null;
+    const createdAt=new Date(rows[0].created_at).getTime();
+    return {keyId:Number(rows[0].key_id),publicKey:rows[0].public_key,createdAt,expiresAt:createdAt+7*86400000};
+  }
+
+  async clearStaleKemPreKeys(accountId,deviceId,identityType='aci') {
+    const {rowCount}=await this.pool.query(
+      `DELETE FROM e2ee_prekeys WHERE account_id=$1 AND device_id=$2 AND identity_type=$3
+       AND key_type='kemOneTimePreKey' AND consumed_at IS NULL`,[accountId,deviceId,identityType]);
+    return {cleared:rowCount};
+  }
+
+  async publishPlannedPreKeys(accountId,deviceId,plan,identityType='aci') {
+    const inventory=await this.getPreKeyInventory(accountId,deviceId,identityType);
+    const keys=await plan(inventory);
+    if(keys.length) await this.uploadPrekeys(accountId,deviceId,identityType,keys);
   }
 
   async enqueueGroupEnvelope(authAccountId, senderDeviceId, envelope) {
