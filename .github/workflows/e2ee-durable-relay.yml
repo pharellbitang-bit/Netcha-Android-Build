@@ -1,6 +1,7 @@
 name: E2EE durable relay integration lab
 on:
   pull_request:
+    types: [opened, synchronize, reopened, edited]
     paths:
       - 'security/e2ee-spike/**'
       - '.github/workflows/e2ee-durable-relay.yml'
