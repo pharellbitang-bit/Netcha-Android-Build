@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@open-e2ee/signal-protocol-sdk": "14.0.0",
-    "pg": "^8.16.3"
+    "pg": "^8.16.3",
+    "@aws-sdk/client-s3": "^3.879.0",
+    "@aws-sdk/s3-request-presigner": "^3.879.0"
   }
 }
