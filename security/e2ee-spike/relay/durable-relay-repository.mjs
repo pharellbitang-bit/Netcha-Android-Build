@@ -79,8 +79,9 @@ export class DurableRelayRepository {
     try {
       await client.query('BEGIN');
       const dev = await client.query(
-        `SELECT identity_public_key FROM e2ee_devices
-         WHERE account_id=$1 AND device_id=$2 AND identity_type=$3 AND enabled=true FOR UPDATE`,
+        `SELECT d.registration_id,i.identity_public_key FROM e2ee_devices d
+         JOIN e2ee_account_identities i ON i.account_id=d.account_id AND i.identity_type=d.identity_type
+         WHERE d.account_id=$1 AND d.device_id=$2 AND d.identity_type=$3 AND d.enabled=true FOR UPDATE`,
         [accountId,deviceId,identityType]);
       if (!dev.rowCount || !dev.rows[0].identity_public_key) throw new Error('DEVICE_NOT_READY');
       const fixed = await client.query(
@@ -104,8 +105,8 @@ export class DurableRelayRepository {
         oneTime.push(...claimed.rows);
       }
       const result = { registrationId:dev.rows[0].registration_id, deviceId, identity:dev.rows[0].identity_public_key };
-      for (const p of fixed.rows) result[p.key_type] = p;
-      for (const p of oneTime.rows) result[p.key_type] = p;
+      for (const p of fixed.rows) result[p.key_type] = {keyId:Number(p.key_id),publicKey:p.public_key,...(p.signature?{signature:p.signature}:{})};
+      for (const p of oneTime) result[p.key_type] = {keyId:Number(p.key_id),publicKey:p.public_key,...(p.signature?{signature:p.signature}:{})};
       if (!result.ecSignedPreKey || (!result.kemLastResortPreKey && !result.kemOneTimePreKey)) throw new Error('PREKEYS_NOT_READY');
       await client.query('COMMIT');
       return result;
