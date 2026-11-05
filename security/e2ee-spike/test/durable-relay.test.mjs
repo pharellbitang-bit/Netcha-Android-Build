@@ -33,7 +33,7 @@ test('durable relay persists mailboxes, atomically consumes prekeys and rotates 
   const [bundleA,bundleB] = await Promise.all([
     repo.fetchPrekeyBundle(bob,bobDevice),repo.fetchPrekeyBundle(bob,bobDevice)
   ]);
-  assert.notEqual(bundleA.ecPreKey?.keyId,bundleB.ecPreKey?.keyId);
+  assert.notEqual(bundleA.ecOneTimePreKey?.keyId,bundleB.ecOneTimePreKey?.keyId);
   assert.notEqual(bundleA.kemOneTimePreKey?.keyId,bundleB.kemOneTimePreKey?.keyId);
   assert.equal(bundleA.registrationId,77);
   assert.equal(bundleA.identity.version,1);
