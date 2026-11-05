@@ -37,7 +37,7 @@ export class EncryptedObjectBroker {
       Bucket:this.bucket,Key:objectKey,ContentType:'application/octet-stream',
       Metadata:{sha256:sha256.toLowerCase()}
     }),{expiresIn:300});
-    return {requestId,uploadUrl,expiresIn:300,headers:{'content-type':'application/octet-stream'}};
+    return {requestId,uploadUrl,expiresIn:300,headers:{'content-type':'application/octet-stream','x-amz-meta-sha256':sha256.toLowerCase()}};
   }
 
   async completeUpload(accountId,requestId) {
