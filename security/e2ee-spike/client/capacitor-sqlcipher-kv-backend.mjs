@@ -64,7 +64,7 @@ export class CapacitorSqlCipherKeyValueBackend {
     const vault=new CapacitorNativeSignalSecretVault();
     const sqlite=new SQLiteConnection(CapacitorSQLite);
     await sqlite.checkConnectionsConsistency();
-    const exists=(await sqlite.isDatabase({database})).result;
+    const exists=(await sqlite.isDatabase(database)).result;
     let dbPassphrase=await vault.getSecret('sqlcipher-'+database);
     if(!dbPassphrase && exists) throw new Error('LOCAL_STORE_KEY_LOST');
     if(!dbPassphrase) {
