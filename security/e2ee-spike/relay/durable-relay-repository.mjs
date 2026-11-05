@@ -106,7 +106,7 @@ export class DurableRelayRepository {
       }
       const result = { registrationId:dev.rows[0].registration_id, deviceId, identity:dev.rows[0].identity_public_key };
       for (const p of fixed.rows) result[p.key_type] = {keyId:Number(p.key_id),publicKey:p.public_key,...(p.signature?{signature:p.signature}:{})};
-      for (const p of oneTime) result[p.key_type] = {keyId:Number(p.key_id),publicKey:p.public_key,...(p.signature?{signature:p.signature}:{})};
+      for (const p of oneTime) { const field=p.key_type==='ecPreKey'?'ecOneTimePreKey':p.key_type; result[field] = {keyId:Number(p.key_id),publicKey:p.public_key,...(p.signature?{signature:p.signature}:{})}; }
       if (!result.ecSignedPreKey || (!result.kemLastResortPreKey && !result.kemOneTimePreKey)) throw new Error('PREKEYS_NOT_READY');
       await client.query('COMMIT');
       return result;
