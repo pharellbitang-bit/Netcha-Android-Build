@@ -1,6 +1,5 @@
 const PREFIX = 'netcha.e2ee.outbox.v1:';
 const toBase64 = bytes => {
-  if (typeof bytes === 'string') return bytes;
   if (!(bytes instanceof Uint8Array)) throw new Error('OUTBOX_CIPHERTEXT_REQUIRED');
   let binary = '';
   for (const byte of bytes) binary += String.fromCharCode(byte);
