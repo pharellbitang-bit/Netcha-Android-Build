@@ -42,7 +42,7 @@ test('streaming media AEAD encrypts bytes, decrypts intact data, and rejects tam
 
 test('attachment pointer is bound to ciphertext integrity and scope; remote object sees ciphertext only', async () => {
   const source = new TextEncoder().encode('Netcha private voice note fixture');
-  const { pointer, ciphertext } = await prepareEncryptedAttachment({ bytes: source, scope: 'private:alice:bob', segmentSize: 8 });
+  const { pointer, ciphertext } = await prepareEncryptedAttachment({ bytes: source, scope: 'private:alice:bob', segmentSize: 128 });
   const objectStore = new Map();
   objectStore.set(pointer.attachmentId, ciphertext); // only opaque bytes are uploaded
   assert.notEqual(new TextDecoder().decode(objectStore.get(pointer.attachmentId)), new TextDecoder().decode(source));
@@ -52,4 +52,31 @@ test('attachment pointer is bound to ciphertext integrity and scope; remote obje
   const corrupt = ciphertext.slice();
   corrupt[corrupt.length - 1] ^= 1;
   await assert.rejects(openEncryptedAttachment({ pointer, ciphertext: corrupt, expectedScope: 'private:alice:bob' }), /INTEGRITY_FAILURE/);
+});
+
+test('photo and voice transport uploads ciphertext and sends the key only in encrypted message payload', async () => {
+  const { sendNetchaEncryptedMedia, receiveNetchaEncryptedMedia } = await import('../client/encrypted-media-transport.mjs');
+  const source = new TextEncoder().encode('voice bytes must never reach the object broker as plaintext');
+  let storedCiphertext, sentPayload;
+  const objectClient={
+    async uploadCiphertext({ciphertext,scope,sha256}) {
+      assert.equal(scope,'private:alice:bob');
+      assert.equal(ciphertext instanceof Uint8Array,true);
+      assert.notDeepEqual(ciphertext,source);
+      assert.equal(typeof sha256,'string');
+      storedCiphertext=ciphertext;
+      return 'request-opaque-1';
+    },
+    async downloadCiphertext(){return storedCiphertext}
+  };
+  await sendNetchaEncryptedMedia({
+    bytes:source,kind:'voice',scope:'private:alice:bob',objectClient,
+    async sendEncryptedPointer(payload){sentPayload=payload}
+  });
+  assert.ok(sentPayload.includes('keyBase64'),'the key is inside the Signal-encrypted payload');
+  const recovered=await receiveNetchaEncryptedMedia({
+    payload:sentPayload,objectClient,expectedScope:'private:alice:bob'
+  });
+  assert.equal(recovered.kind,'voice');
+  assert.deepEqual(recovered.bytes,source);
 });
