@@ -13,7 +13,9 @@
     "@capacitor-firebase/messaging": "^7.0.1",
     "@capacitor-community/sqlite": "7.0.3",
     "@aparajita/capacitor-secure-storage": "7.1.6",
-    "firebase": "^11.10.0"
+    "firebase": "^11.10.0",
+    "@open-e2ee/signal-protocol-sdk": "14.0.0",
+    "idb": "^8.0.3"
   },
   "devDependencies": {
     "@capacitor/cli": "^7.4.3"
