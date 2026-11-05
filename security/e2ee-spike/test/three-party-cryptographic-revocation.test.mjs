@@ -35,8 +35,12 @@ test('REAL FOUR-PARTY CRYPTO: removed Cara retains history but cannot decrypt gr
   // The application must parse it and install the sender key explicitly.
   for (const client of recipients) {
     client.registerHook('onMessageDecrypted', async event => {
+      let payload;
+      try { payload = JSON.parse(event.content); } catch { return; }
+      // The SDK wraps the serialized distribution in a JSON string field.
+      if (!payload || typeof payload.senderKeyDistributionMessage !== 'string') return;
       let parsed;
-      try { parsed = JSON.parse(event.content); } catch { return; }
+      try { parsed = JSON.parse(payload.senderKeyDistributionMessage); } catch { return; }
       if (!parsed || typeof parsed !== 'object' || !parsed.senderKeyVersion || !parsed.groupId) return;
       const distribution = {
         senderKeyVersion: parsed.senderKeyVersion,
