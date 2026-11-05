@@ -26,7 +26,7 @@ test('REAL FOUR-PARTY CRYPTO: removed Cara retains history but cannot decrypt gr
   const recipients = [bob, cara, david];
   t.after(async () => {
     for (const client of clients) {
-      try { client.stopRelaySubscription(); } catch {}
+      try { await client.stop(); } catch {}
     }
   });
 
@@ -65,11 +65,15 @@ test('REAL FOUR-PARTY CRYPTO: removed Cara retains history but cannot decrypt gr
         ' | relay audit=' + JSON.stringify(relay.audit));
     }
   }
-  await until(async () => {
-    return await bob.hasGroupSenderKey(groupId) &&
-      await cara.hasGroupSenderKey(groupId) &&
-      await david.hasGroupSenderKey(groupId);
-  }, 'INITIAL_KEYS_ON_ALL_THREE_MEMBERS');
+  try {
+    await until(async () => {
+      return await bob.hasGroupSenderKey(groupId) &&
+        await cara.hasGroupSenderKey(groupId) &&
+        await david.hasGroupSenderKey(groupId);
+    }, 'INITIAL_KEYS_ON_ALL_THREE_MEMBERS');
+  } catch (error) {
+    throw new Error(error.message + ' | relay audit=' + JSON.stringify(relay.audit));
+  }
 
   const beforeRemoval = await alice.encryptGroupMessage(groupId, 'historical-message-before-removal');
   for (const client of recipients) {
