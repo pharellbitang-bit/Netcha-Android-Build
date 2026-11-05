@@ -1,6 +1,12 @@
 name: Capacitor 7 encrypted-storage native compile gate
 
 on:
+  pull_request:
+    paths:
+      - 'package.json'
+      - 'capacitor.config.json'
+      - 'security/e2ee-spike/**'
+      - '.github/workflows/storage-native-compile.yml'
   push:
     branches: [diagnostics/github-runner-allocation, security/e2ee-durable-relay-storage-groups]
     paths:
