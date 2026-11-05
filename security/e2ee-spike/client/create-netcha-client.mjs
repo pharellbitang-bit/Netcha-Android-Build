@@ -2,6 +2,7 @@ import { createSignalProtocolClient } from '@open-e2ee/signal-protocol-sdk';
 import { keyValueStore } from '@open-e2ee/signal-protocol-sdk/local/store/key-value';
 import { CapacitorNativeSignalSecretVault } from './capacitor-native-vault.mjs';
 import { CapacitorSqlCipherKeyValueBackend } from './capacitor-sqlcipher-kv-backend.mjs';
+import { NetchaDurableSignalRelay } from './http-relay-adapter.mjs';
 
 /**
  * Android/iOS WebView client composition.
@@ -9,9 +10,12 @@ import { CapacitorSqlCipherKeyValueBackend } from './capacitor-sqlcipher-kv-back
  * The DB passphrase and SDK record-encryption key are held in Android Keystore
  * / iOS Keychain. There is intentionally no memory/localStorage fallback.
  */
-export async function createNetchaE2EEClient({ identity, relay, hooks = {} }) {
-  if (!identity?.userId || !Number.isInteger(identity.deviceId) || !relay)
+export async function createNetchaE2EEClient({ identity, relay, relayUrl, getAccessToken, hooks = {} }) {
+  if (!identity?.userId || !Number.isInteger(identity.deviceId) || (!relay && (!relayUrl || !getAccessToken)))
     throw new Error('E2EE_IDENTITY_AND_RELAY_REQUIRED');
+  const durableRelay = relay ?? new NetchaDurableSignalRelay({
+    baseUrl: relayUrl, getAccessToken, userId: identity.userId, deviceId: identity.deviceId
+  });
   if (!globalThis.crypto?.getRandomValues || !globalThis.crypto?.subtle)
     throw new Error('SECURE_WEBCRYPTO_UNAVAILABLE');
 
@@ -23,7 +27,7 @@ export async function createNetchaE2EEClient({ identity, relay, hooks = {} }) {
 
   return createSignalProtocolClient({
     identity,
-    adapters: { storage, relay },
+    adapters: { storage, relay: durableRelay },
     hooks
   });
 }
