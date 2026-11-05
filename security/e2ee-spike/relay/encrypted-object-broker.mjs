@@ -16,7 +16,7 @@ export class EncryptedObjectBroker {
 
   async assertScopeAccess(accountId,scope) {
     const parts=String(scope).split(':');
-    if(parts[0]==='private'&&parts.length===3)
+    if(parts[0]==='private'&&parts.length===3&&parts[1]!==parts[2])
       return parts.slice(1).includes(accountId);
     if(parts[0]==='group'&&parts.length===2) {
       const {rows}=await this.repository.pool.query(
