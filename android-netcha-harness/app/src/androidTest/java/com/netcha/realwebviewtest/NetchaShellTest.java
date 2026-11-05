@@ -51,15 +51,15 @@ public final class NetchaShellTest {
     @Test
     public void loadsRealNetchaShellAndAccountInterface() throws Exception {
         String state = waitFor(
-            "JSON.stringify({title:document.title,app:!!document.querySelector('main.app'),nav:!!document.querySelector('nav.bottom'),auth:!!document.getElementById('netchaAuthTrigger'),modal:!!document.getElementById('netchaAuthModal'),feed:!!document.querySelector('[data-screen=\\\"feed\\\"]')})",
-            "\\\"auth\\\":true"
+            "({title:document.title,app:!!document.querySelector('main.app'),nav:!!document.querySelector('nav.bottom'),auth:!!document.getElementById('netchaAuthTrigger'),modal:!!document.getElementById('netchaAuthModal'),feed:!!document.querySelector('[data-screen=feed]')})",
+            "\"auth\":true"
         );
         assertTrue("Netcha local shell or account UI did not load: " + state,
-            state.contains("\\\"app\\\":true")
-            && state.contains("\\\"nav\\\":true")
-            && state.contains("\\\"auth\\\":true")
-            && state.contains("\\\"modal\\\":true")
-            && state.contains("\\\"feed\\\":true"));
+            state.contains("\"app\":true")
+            && state.contains("\"nav\":true")
+            && state.contains("\"auth\":true")
+            && state.contains("\"modal\":true")
+            && state.contains("\"feed\":true"));
     }
 
     @Test
@@ -74,7 +74,7 @@ public final class NetchaShellTest {
     @Test
     public void mainNavigationContainsRealNetchaScreens() throws Exception {
         String state = waitFor(
-            "JSON.stringify(Array.from(document.querySelectorAll('nav.bottom [data-screen]')).map(e=>e.getAttribute('data-screen')))",
+            "Array.from(document.querySelectorAll('nav.bottom [data-screen]')).map(e=>e.getAttribute('data-screen')).join(',')",
             "profile"
         );
         assertTrue("Expected Netcha navigation screens missing: " + state,
