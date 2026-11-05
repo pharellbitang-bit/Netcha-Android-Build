@@ -51,7 +51,7 @@ public final class NetchaShellTest {
     @Test
     public void loadsRealNetchaShellAndAccountInterface() throws Exception {
         String state = waitFor(
-            "({title:document.title,app:!!document.querySelector('main.app'),nav:!!document.querySelector('nav.bottom'),auth:!!document.getElementById('netchaAuthTrigger'),modal:!!document.getElementById('netchaAuthModal'),feed:!!document.querySelector('[data-screen=feed]')})",
+            "({title:document.title,app:!!document.querySelector('main.app'),nav:!!document.querySelector('nav.bottom'),auth:!!document.getElementById('netchaAuthTrigger'),modal:!!document.getElementById('netchaAuthModal'),feed:!!document.querySelector('section#feed.screen')})",
             "\"auth\":true"
         );
         assertTrue("Netcha local shell or account UI did not load: " + state,
