@@ -39,7 +39,7 @@ test('REAL THREE-PARTY CRYPTO: removed Cara decrypts history but cannot decrypt 
   const groupId = 'netcha-revocation-' + randomUUID();
 
   await alice.createGroupSenderKey(groupId);
-  await alice.distributeGroupSenderKey(groupId, [users[1], users[2]]);
+  try { await alice.distributeGroupSenderKey(groupId, [users[1], users[2]]); } catch (error) { throw new Error(error.message + ' | relay audit=' + JSON.stringify(relay.audit)); }
   await until(async () => await bob.hasGroupSenderKey(groupId) && await cara.hasGroupSenderKey(groupId), 'INITIAL_KEYS_ON_BOB_AND_CARA');
 
   const beforeRemoval = await alice.encryptGroupMessage(groupId, 'historical-message-before-removal');
