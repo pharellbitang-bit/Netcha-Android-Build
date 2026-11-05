@@ -11,9 +11,11 @@ export function createTestRelay() {
     const callback = subscribers.get(recipientKey);
     if (!callback) return;
     for (const envelope of [...(mailboxes.get(recipientKey) ?? [])]) {
+      audit.push({op:'deliver-start',to:recipientKey,type:envelope.messageType,id:envelope.messageId});
       Promise.resolve().then(() => callback(envelope)).then(() => {
+        audit.push({op:'deliver-ok',to:recipientKey,type:envelope.messageType,id:envelope.messageId});
         mailboxes.set(recipientKey, (mailboxes.get(recipientKey) ?? []).filter(item => item.messageId !== envelope.messageId));
-      }).catch(error => audit.push({ op:'receive-error', error:error.message }));
+      }).catch(error => audit.push({ op:'receive-error', to:recipientKey, type:envelope.messageType, error:error.message }));
     }
   }
   const relay = {
