@@ -2572,7 +2572,8 @@ async function deconnecterCompteNetcha(){
  const confirmation=await dialogueNetcha({title:'Se déconnecter de Netcha ?',description:'Ta session sera fermée sur cet appareil. Ton compte et tes données ne seront pas supprimés.',fields:[],confirmText:'Déconnexion',cancelText:'Annuler'});
  if(!confirmation)return;
  try{
-  await requeteNetcha('/api/logout',{method:'POST',body:JSON.stringify({})});
+  await window.netchaDesenregistrerPushAndroid?.();
+   await requeteNetcha('/api/logout',{method:'POST',body:JSON.stringify({})});
  }catch(e){
   console.warn('Révocation distante de la session indisponible ; fermeture locale appliquée.',e);
  }finally{
@@ -2867,6 +2868,61 @@ async function lireToutesNotificationsNetcha(){
 window.addEventListener('netcha:auth',()=>{netchaDernieresNotifications=null;synchroniserNotificationsNetcha(false);if(document.getElementById('notificationsNetcha')?.style.display==='block')chargerNotificationsNetcha()});
 if(jetonNetcha())synchroniserNotificationsNetcha(false);
 setInterval(()=>{if(document.visibilityState==='visible'&&jetonNetcha())synchroniserNotificationsNetcha(true)},3000);
+/* Notifications push natives Android via Firebase Messaging + API Netcha. */
+(function(){
+ const capac=window.Capacitor,plugins=capac?.Plugins||{},messaging=plugins.FirebaseMessaging,local=plugins.LocalNotifications;
+ if(!capac||!messaging||typeof messaging.getToken!=='function'||window.__netchaAndroidPushReady)return;
+ window.__netchaAndroidPushReady=true;
+ let tokenFcm='',listenersReady=false,registrationBusy=false;
+ const key='netcha_android_fcm_token';
+ async function enregistrer(jeton){
+  if(!jeton||!jetonNetcha()||registrationBusy)return;
+  registrationBusy=true;
+  try{await requeteNetcha('/api/push/register',{method:'POST',body:JSON.stringify({token:jeton,platform:'android',device_name:'Netcha Android'})});tokenFcm=jeton;try{localStorage.setItem(key,jeton)}catch(_){}}
+  catch(e){console.warn('Enregistrement push Netcha impossible; nouvelle tentative à la prochaine ouverture.',e)}
+  finally{registrationBusy=false}
+ }
+ async function obtenirEtEnregistrer(){
+  if(!jetonNetcha())return;
+  try{
+   const permission=await messaging.requestPermissions();
+   const granted=permission?.receive==='granted'||permission?.granted===true;
+   if(!granted)return;
+   const result=await messaging.getToken(),value=typeof result==='string'?result:result?.token;
+   if(value)await enregistrer(value);
+  }catch(e){console.warn('Autorisation ou jeton FCM indisponible.',e)}
+ }
+ function ecouter(){
+  if(listenersReady)return;listenersReady=true;
+  messaging.addListener?.('tokenReceived',event=>{const value=event?.token;if(value)enregistrer(value)});
+  messaging.addListener?.('notificationReceived',async event=>{
+   const n=event?.notification||event||{},data=n.data||event?.data||{};
+   if(!local||(!n.title&&!n.body))return;
+   try{
+    const raw=String(data.message_id||data.notification_id||data.conversation_id||Date.now());
+    let id=0;for(let i=0;i<raw.length;i++)id=((id<<5)-id+raw.charCodeAt(i))|0;
+    id=Math.abs(id)||1;
+    await local.schedule({notifications:[{id,title:String(n.title||'Netcha').slice(0,100),body:String(n.body||'Nouvelle notification').slice(0,240),schedule:{at:new Date(Date.now()+700)},extra:{...data}}]});
+   }catch(e){console.warn('Affichage de la notification au premier plan impossible.',e)}
+  });
+  messaging.addListener?.('notificationActionPerformed',event=>{
+   const data=event?.notification?.data||{};
+   if(data.type==='nouveau_message'&&data.conversation_id)go('messages');
+   else if(data.type==='demande_amitie'||data.type==='amitie_acceptee')go('friends');
+   else if(typeof ouvrirNotificationsNetcha==='function')ouvrirNotificationsNetcha();
+  });
+ }
+ async function desenregistrer(){
+  const saved=tokenFcm||(()=>{try{return localStorage.getItem(key)||''}catch(_){return ''}})();
+  if(!saved||!jetonNetcha())return;
+  try{await requeteNetcha('/api/push/unregister',{method:'POST',body:JSON.stringify({token:saved})})}catch(e){console.warn('Désinscription push différée.',e)}
+  tokenFcm='';try{localStorage.removeItem(key)}catch(_){}
+ }
+ window.netchaDesenregistrerPushAndroid=desenregistrer;
+ ecouter();
+ window.addEventListener('netcha:auth',()=>{if(jetonNetcha())obtenirEtEnregistrer()});
+ if(jetonNetcha())obtenirEtEnregistrer();
+})();
 
 </script>
 
