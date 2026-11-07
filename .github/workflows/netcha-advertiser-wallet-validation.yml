@@ -1,0 +1,34 @@
+name: Validate Netcha advertiser wallet
+
+on:
+  push:
+    branches:
+      - test/netcha-advertiser-wallet-validation
+    paths:
+      - .github/workflows/netcha-advertiser-wallet-validation.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  advertiser-wallet-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Netcha backend source (read-only)
+        uses: actions/checkout@v4
+        with:
+          repository: pharellbitang-bit/Netcha
+          ref: feature/netcha-advertiser-wallet
+          path: netcha-source
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run only advertiser wallet and campaign tests
+        working-directory: netcha-source
+        run: |
+          python -m unittest backend.test_ad_wallet backend.test_ads_sandbox -v
