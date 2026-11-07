@@ -1,0 +1,82 @@
+name: Real Netcha Android WebView validation
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "www/**"
+      - "android-netcha-harness/**"
+      - ".github/workflows/real-netcha-android-webview.yml"
+  push:
+    branches:
+      - "qa/real-netcha-android-webview"
+    paths:
+      - "www/**"
+      - "android-netcha-harness/**"
+      - ".github/workflows/real-netcha-android-webview.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  real-netcha-webview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - api-level: 29
+            android-version: "10"
+          - api-level: 35
+            android-version: "15"
+    name: "Real Netcha on Android ${{ matrix.android-version }} (API ${{ matrix.api-level }})"
+    steps:
+      - name: Checkout public Android repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Package the actual Netcha web application into WebView assets
+        run: |
+          test -s www/index.html
+          test -s www/auth.js
+          mkdir -p android-netcha-harness/app/src/main/assets
+          cp -R www/. android-netcha-harness/app/src/main/assets/
+          test -s android-netcha-harness/app/src/main/assets/index.html
+          test -s android-netcha-harness/app/src/main/assets/auth.js
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Run real Netcha WebView tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          emulator-boot-timeout: 900
+          force-avd-creation: true
+          disable-animations: true
+          working-directory: android-netcha-harness
+          script: |
+            adb wait-for-device
+            adb shell getprop sys.boot_completed
+            gradle --no-daemon --stacktrace connectedDebugAndroidTest
+
+      - name: Upload Netcha WebView diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-netcha-webview-api-${{ matrix.api-level }}
+          path: android-netcha-harness/app/build/reports/androidTests/connected/
+          if-no-files-found: ignore
+          retention-days: 7
