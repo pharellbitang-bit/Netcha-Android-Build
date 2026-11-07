@@ -2626,6 +2626,166 @@ async function chargerPublicationsProfilNetcha(reset=false){
  }catch(e){if(generation===profileTimelineGenerationNetcha)status.textContent=e.message||'Historique temporairement indisponible.'}
  finally{if(generation===profileTimelineGenerationNetcha)profileTimelineLoadingNetcha=false}
 }
+let netchaDernierDepotWallet='';
+async function netchaWalletApi(path,method='GET',data=null){
+ const options={method};
+ if(data!==null)options.body=JSON.stringify(data);
+ return requeteNetcha(path,options);
+}
+function netchaFormatFcfa(value){return Number(value||0).toLocaleString('fr-FR')+' FCFA'}
+async function chargerPortefeuillePublicitaireNetcha(){
+ if(!jetonNetcha())return;
+ try{
+  const wallet=await netchaWalletApi('/api/ads/wallet');
+  const available=document.getElementById('netchaWalletAvailable'),reserved=document.getElementById('netchaWalletReserved');
+  if(available)available.textContent=netchaFormatFcfa(wallet.solde_disponible_fcfa);
+  if(reserved)reserved.textContent='Montant réservé : '+netchaFormatFcfa(wallet.solde_reserve_fcfa);
+  await netchaAdminDetecter();
+ }catch(e){const status=document.getElementById('netchaWalletStatus');if(status)status.textContent=e.message||'Portefeuille indisponible.'}
+}
+async function netchaWalletDeposit(){
+ try{
+  const amount=Number(prompt('Montant du dépôt en FCFA (minimum 100) :','1000'));if(!Number.isInteger(amount)||amount<100)return;
+  const phone=prompt('Ton numéro Orange Money/MTN d’origine (utilisé aussi pour les retraits) :');if(!phone)return;
+  const result=await netchaWalletApi('/api/ads/wallet/deposits','POST',{montant_fcfa:amount,telephone:phone});
+  netchaDernierDepotWallet=result.reference||'';
+  try{localStorage.setItem('netchaAdLastDeposit',netchaDernierDepotWallet)}catch(_){}
+  const status=document.getElementById('netchaWalletStatus');
+  if(result.statut==='PENDING_REVIEW'){
+   if(status)status.textContent='Cette demande existe déjà et attend la vérification du paiement. Référence Netcha : '+result.reference+'. Aucun nouveau transfert à effectuer.';
+   toast('Demande déjà soumise : paiement en cours de vérification.');
+   await chargerPortefeuillePublicitaireNetcha();
+   return;
+  }
+  if(status)status.textContent=(result.reutilisee?'Demande en attente retrouvée. ':'')+'Envoie exactement '+netchaFormatFcfa(amount)+' au '+result.numero_paiement+'. Après le transfert, soumets la référence de transaction Orange Money. Le crédit attendra notre vérification.';
+  alert('Effectue le transfert Orange Money de '+netchaFormatFcfa(amount)+' vers le numéro Netcha : '+result.numero_paiement+'\\n\\nRéférence de demande Netcha : '+result.reference+'\\n\\nAprès le transfert, appuie sur « Soumettre référence ».');
+  await chargerPortefeuillePublicitaireNetcha();
+ }catch(e){toast(e.message||'Dépôt impossible.')}
+}
+async function netchaWalletVerifyDeposit(){
+ const ref=netchaDernierDepotWallet||(function(){try{return localStorage.getItem('netchaAdLastDeposit')||''}catch(_){return ''}})();
+ if(!ref){toast('Aucune demande de dépôt récente à soumettre.');return}
+ const operatorRef=prompt('Saisis la référence exacte de la transaction Orange Money reçue après ton transfert :');if(!operatorRef)return;
+ try{
+  const r=await netchaWalletApi('/api/ads/wallet/deposits/reference','POST',{reference:ref,reference_paiement:operatorRef.trim()});
+  const status=document.getElementById('netchaWalletStatus');if(status)status.textContent='Référence envoyée. Le crédit sera effectué après vérification réelle par Netcha.';
+  toast('Référence soumise. Crédit en attente de vérification.');
+  await chargerPortefeuillePublicitaireNetcha();
+ }catch(e){toast(e.message||'Soumission impossible.')}
+}
+async function netchaWalletWithdraw(){
+ try{
+  const wallet=await netchaWalletApi('/api/ads/wallet');
+  if(!wallet.telephone_source_masque){toast("Effectue d'abord un dépôt pour enregistrer ton numéro Mobile Money d'origine.");return}
+  if(!confirm('Le retrait sera envoyé uniquement vers ton numéro d’origine ('+wallet.telephone_source_masque+'). Tu ne pourras pas choisir un autre numéro. Continuer ?'))return;
+  const amount=Number(prompt('Montant du retrait en FCFA :'));if(!Number.isInteger(amount)||amount<100)return;
+  const r=await netchaWalletApi('/api/ads/wallet/withdrawals','POST',{montant_fcfa:amount});
+  const status=document.getElementById('netchaWalletStatus');
+  if(status)status.textContent='Demande '+r.reference+' enregistrée. Les fonds sont réservés. Tu recevras le transfert après traitement manuel.';
+  toast('Demande de retrait enregistrée. Le transfert sera effectué manuellement.');
+  await chargerPortefeuillePublicitaireNetcha();
+ }catch(e){toast(e.message||'Retrait impossible.')}
+}
+async function netchaWalletHistory(){
+ try{
+  const [r,w]=await Promise.all([
+   netchaWalletApi('/api/ads/wallet/history'),
+   netchaWalletApi('/api/ads/wallet/withdrawals')
+  ]);
+  const zone=document.getElementById('netchaWalletHistory');if(!zone)return;
+  zone.hidden=false;zone.replaceChildren();
+  const heading=document.createElement('strong');heading.textContent='Opérations du portefeuille';zone.appendChild(heading);
+  if(!r.transactions?.length){const empty=document.createElement('div');empty.textContent='Aucune opération comptable.';zone.appendChild(empty)}
+  (r.transactions||[]).forEach(t=>{
+   const line=document.createElement('div');
+   line.textContent=(t.operation||'Opération')+' · '+netchaFormatFcfa(t.montant_fcfa)+' · '+(t.statut||'');
+   line.style.cssText='padding:7px 0;border-bottom:1px solid var(--line)';
+   zone.appendChild(line);
+  });
+  const title=document.createElement('strong');title.textContent='Demandes de retrait';title.style.cssText='display:block;margin-top:12px';zone.appendChild(title);
+  if(!w.retraits?.length){const empty=document.createElement('div');empty.textContent='Aucune demande de retrait.';zone.appendChild(empty)}
+  (w.retraits||[]).forEach(item=>{
+   const line=document.createElement('div');
+   line.textContent=(item.moyen||'Mobile Money')+' · '+netchaFormatFcfa(item.montant_fcfa)+' · '+(item.statut||'INCONNU')+' · '+(item.destination_masquee||'');
+   line.style.cssText='padding:7px 0;border-bottom:1px solid var(--line)';
+   zone.appendChild(line);
+  });
+ }catch(e){toast(e.message||'Historique indisponible.')}
+}
+
+async function netchaAdminDetecter(){
+ const button=document.getElementById('netchaAdAdminButton');if(!button||!jetonNetcha())return;
+ try{await netchaWalletApi('/api/ads/admin/finance');button.hidden=false}catch(_){button.hidden=true}
+}
+async function netchaAdminChargerFinance(){
+ const zone=document.getElementById('netchaAdAdminPanel');if(!zone)return;
+ try{
+  const data=await netchaWalletApi('/api/ads/admin/finance');
+  zone.hidden=false;zone.replaceChildren();
+  const h=document.createElement('strong');h.textContent='Gestion manuelle des paiements';zone.appendChild(h);
+  const rev=document.createElement('div');rev.style.cssText='margin:8px 0;font-weight:800';rev.textContent='Revenu publicitaire reconnu : '+netchaFormatFcfa(data.revenus_proprietaire?.solde_revenu_fcfa);zone.appendChild(rev);
+  const section=(title,items)=>{const s=document.createElement('section');s.style.cssText='margin-top:12px;padding-top:10px;border-top:1px solid var(--line)';const t=document.createElement('strong');t.textContent=title+' ('+items.length+')';s.appendChild(t);zone.appendChild(s);return s};
+  const deposits=section('Encaissements à vérifier',data.encaissements_a_verifier||[]);
+  (data.encaissements_a_verifier||[]).forEach(item=>{
+   const row=document.createElement('div');row.style.cssText='padding:9px 0;border-bottom:1px solid var(--line)';
+   const info=document.createElement('div');info.textContent=netchaFormatFcfa(item.montant_fcfa)+' · Réf. transaction : '+item.reference_paiement+' · Numéro déclaré : '+(item.telephone_payeur||item.telephone_payeur_masque||'indisponible');row.appendChild(info);
+   const btn=document.createElement('button');btn.className='primary';btn.textContent='Confirmer après vérification';btn.style.marginTop='7px';
+   btn.onclick=async()=>{if(!confirm('As-tu vérifié dans TON compte Orange Money que cette référence a bien reçu exactement '+netchaFormatFcfa(item.montant_fcfa)+' ?'))return;try{await netchaWalletApi('/api/ads/admin/deposits/confirm','POST',{reference:item.reference});toast('Portefeuille annonceur crédité.');await netchaAdminChargerFinance();await chargerPortefeuillePublicitaireNetcha()}catch(e){toast(e.message||'Confirmation impossible.')}};
+   row.appendChild(btn);deposits.appendChild(row);
+  });
+  if(!(data.encaissements_a_verifier||[]).length){const empty=document.createElement('div');empty.textContent='Aucun encaissement à vérifier.';deposits.appendChild(empty)}
+  const withdrawals=section('Retraits à effectuer',data.retraits_a_effectuer||[]);
+  (data.retraits_a_effectuer||[]).forEach(item=>{
+   const row=document.createElement('div');row.style.cssText='padding:9px 0;border-bottom:1px solid var(--line)';
+   const info=document.createElement('div');info.textContent=netchaFormatFcfa(item.montant_fcfa)+' → '+(item.destination_telephone||'Numéro indisponible')+' ('+(item.destination_masquee||'')+')';row.appendChild(info);
+   const pay=document.createElement('button');pay.className='primary';pay.textContent='Transférer puis confirmer';pay.style.marginTop='7px';
+   pay.onclick=async()=>{if(!confirm('Effectue maintenant le transfert Orange Money de '+netchaFormatFcfa(item.montant_fcfa)+' vers '+item.destination_telephone+'. Confirme uniquement après succès.'))return;const tx=prompt('Référence exacte de la transaction Orange Money :');if(!tx)return;try{await netchaWalletApi('/api/ads/admin/withdrawals/confirm','POST',{reference:item.reference,reference_paiement:tx.trim()});toast('Retrait confirmé et enregistré.');await netchaAdminChargerFinance();await chargerPortefeuillePublicitaireNetcha()}catch(e){toast(e.message||'Confirmation impossible.')}};
+   row.appendChild(pay);
+   const reject=document.createElement('button');reject.className='secondary';reject.textContent='Refuser / restituer';reject.style.margin='7px 0 0 7px';
+   reject.onclick=async()=>{const reason=prompt('Motif du refus (ex. numéro indisponible) :');if(reason===null)return;try{await netchaWalletApi('/api/ads/admin/withdrawals/reject','POST',{reference:item.reference,motif:reason});toast('Fonds restitués à l’annonceur.');await netchaAdminChargerFinance();await chargerPortefeuillePublicitaireNetcha()}catch(e){toast(e.message||'Refus impossible.')}};
+   row.appendChild(reject);withdrawals.appendChild(row);
+  });
+  if(!(data.retraits_a_effectuer||[]).length){const empty=document.createElement('div');empty.textContent='Aucun retrait à effectuer.';withdrawals.appendChild(empty)}
+ }catch(e){toast(e.message||'Espace administrateur indisponible.')}
+}
+async function netchaChargerCampagnes(){
+ const zone=document.getElementById('netchaAdCampaignList');if(!zone||!jetonNetcha())return;
+ try{
+  const r=await netchaWalletApi('/api/ads/campaigns');
+  zone.replaceChildren();
+  if(!r.campagnes?.length){zone.textContent='Aucune campagne pour le moment.';return}
+  r.campagnes.forEach(c=>{
+   const card=document.createElement('div');card.style.cssText='padding:10px 0;border-bottom:1px solid var(--line)';
+   const title=document.createElement('strong');title.textContent=c.titre||'Campagne';title.style.display='block';
+   const meta=document.createElement('div');meta.textContent=(c.statut||'')+' · '+netchaFormatFcfa(c.montant_fcfa)+' · '+Number(c.impressions||0).toLocaleString('fr-FR')+'/'+Number(c.impressions_max||0).toLocaleString('fr-FR')+' impressions';meta.style.cssText='color:var(--muted);font-size:11px;margin:4px 0 7px';
+   card.append(title,meta);
+   if(c.statut==='DRAFT'){
+    const reserve=document.createElement('button');reserve.type='button';reserve.className='secondary';reserve.textContent='Réserver le forfait';
+    reserve.onclick=async()=>{try{await netchaWalletApi('/api/ads/campaigns/reserve','POST',{campaign_id:c.id});toast('Forfait réservé. Campagne envoyée en validation.');await netchaChargerCampagnes();await chargerPortefeuillePublicitaireNetcha()}catch(e){toast(e.message||'Réservation impossible.')}};
+    card.appendChild(reserve);
+   }
+   zone.appendChild(card);
+  });
+ }catch(e){zone.textContent=e.message||'Impossible de charger les campagnes.'}
+}
+async function netchaCreerCampagne(){
+ try{
+  const titre=(prompt('Nom de la campagne (3 à 80 caractères) :')||'').trim();if(!titre)return;
+  const image_url=(prompt('Lien HTTPS de l’image publicitaire :')||'').trim();if(!image_url)return;
+  const destination_url=(prompt('Lien HTTPS de destination :')||'').trim();if(!destination_url)return;
+  const montant_fcfa=Number(prompt('Forfait en FCFA : 1000, 2500, 5000, 10000, 25000 ou 50000','1000'));
+  if(![1000,2500,5000,10000,25000,50000].includes(montant_fcfa)){toast('Forfait non reconnu.');return}
+  const r=await netchaWalletApi('/api/ads/campaigns','POST',{titre,image_url,destination_url,montant_fcfa});
+  const id=r.campagne?.id;if(!id)throw new Error('Campagne créée mais identifiant introuvable.');
+  try{
+   await netchaWalletApi('/api/ads/campaigns/reserve','POST',{campaign_id:id});
+   toast('Campagne créée et forfait réservé. En attente de validation.');
+  }catch(e){toast('Campagne enregistrée en brouillon : '+(e.message||'solde insuffisant')+'. Tu pourras réserver après le dépôt.')}
+  await netchaChargerCampagnes();await chargerPortefeuillePublicitaireNetcha();
+ }catch(e){toast(e.message||'Création de campagne impossible.')}
+}
+
+
 async function chargerProfilNetcha(){
  if(!jetonNetcha())return;
  try{
