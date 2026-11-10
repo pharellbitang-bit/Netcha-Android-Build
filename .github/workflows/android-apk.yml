@@ -74,12 +74,12 @@ jobs:
           nouvelle_fonction = """function mediaUrlNetcha(url){
            if(typeof url!=='string')return '';
            const valeur=url.trim();
+           // Même validation que le web : accepte aussi les signatures temporaires expires/sig.
            if(!valeur||/[\\u0000-\\u0020"'<>\\\\]/.test(valeur))return '';
            if(/^https:\\/\\/[^/]+(?:\\/|$)/i.test(valeur))return valeur;
-           const compte=/^\\/api\\/media\\/accounts\\/[0-9a-f-]{36}\\/[0-9a-f-]{36}\\.(?:jpg|jpeg|png|webp|gif|mp4|webm|mov|ogg|mp3|pdf|txt)$/i;
-           const ancien=/^\\/api\\/media\\/public\\/public\\/[0-9a-f-]{36}\\/[0-9a-f]{32}\\.(?:jpg|jpeg|png|webp|gif)$/i;
-           return compte.test(valeur)||ancien.test(valeur)?('https://gentle-tranquility-production-db0a.up.railway.app'+valeur):'';
-          }"""
+           const media=/^\\/api\\/media\\/(?:accounts\\/[0-9a-f-]{36}\\/[0-9a-f-]{36}\\.(?:jpg|jpeg|png|webp|gif|mp4|webm|mov|ogg|mp3|m4a|wav|pdf|txt)|public\\/public\\/[0-9a-f-]{36}\\/[0-9a-f]{32}\\.(?:jpg|jpeg|png|webp|gif))(?:\\?expires=\\d{10}&sig=[0-9a-f]{64})?$/i;
+           return media.test(valeur)?('https://gentle-tranquility-production-db0a.up.railway.app'+valeur):'';
+          }
           html, remplacements = re.subn(r"function\s+mediaUrlNetcha\s*\(url\)\s*\{.*?\n\}", lambda _match: nouvelle_fonction, html, count=1, flags=re.S)
           if remplacements != 1:
               raise SystemExit("Fonction mediaUrlNetcha introuvable : arrêt pour éviter une APK incomplète.")
