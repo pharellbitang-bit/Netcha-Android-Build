@@ -30,6 +30,9 @@ jobs:
       - name: Install wrapper dependencies
         run: npm install
 
+      - name: Bundle native Firebase Messaging bridge
+        run: npx esbuild www/push.js --bundle --format=iife --platform=browser --target=es2020 --outfile=www/push.bundle.js
+
       - name: Check embedded JavaScript syntax
         run: |
           node --check www/auth.js
