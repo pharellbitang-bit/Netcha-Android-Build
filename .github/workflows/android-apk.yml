@@ -70,12 +70,20 @@ jobs:
           # vers capacitor://localhost. Les balises img/video ne passent pas par fetch(),
           # donc le proxy API de auth.js ne les réécrit pas. On les rend absolues vers
           # la même API de production, uniquement dans la copie embarquée de l'APK.
-          ancienne_route = "return compte.test(valeur)||ancien.test(valeur)?valeur:'';"
-          nouvelle_route = "return compte.test(valeur)||ancien.test(valeur)?('https://gentle-tranquility-production-db0a.up.railway.app'+valeur):'';"
-          if ancienne_route not in html:
-              raise SystemExit("Fonction mediaUrlNetcha introuvable ou modifiée : arrêt pour éviter une APK incomplète.")
-          html = html.replace(ancienne_route, nouvelle_route, 1)
-          if nouvelle_route not in html:
+          import re
+          nouvelle_fonction = """function mediaUrlNetcha(url){
+           if(typeof url!=='string')return '';
+           const valeur=url.trim();
+           if(!valeur||/[\\u0000-\\u0020"'<>\\\\]/.test(valeur))return '';
+           if(/^https:\\/\\/[^/]+(?:\\/|$)/i.test(valeur))return valeur;
+           const compte=/^\\/api\\/media\\/accounts\\/[0-9a-f-]{36}\\/[0-9a-f-]{36}\\.(?:jpg|jpeg|png|webp|gif|mp4|webm|mov|ogg|mp3|pdf|txt)$/i;
+           const ancien=/^\\/api\\/media\\/public\\/public\\/[0-9a-f-]{36}\\/[0-9a-f]{32}\\.(?:jpg|jpeg|png|webp|gif)$/i;
+           return compte.test(valeur)||ancien.test(valeur)?('https://gentle-tranquility-production-db0a.up.railway.app'+valeur):'';
+          }"""
+          html, remplacements = re.subn(r"function\\s+mediaUrlNetcha\\s*\\(url\\)\\s*\\{.*?\\n\\}", nouvelle_fonction, html, count=1, flags=re.S)
+          if remplacements != 1:
+              raise SystemExit("Fonction mediaUrlNetcha introuvable : arrêt pour éviter une APK incomplète.")
+          if "gentle-tranquility-production-db0a.up.railway.app'+valeur" not in html:
               raise SystemExit("La réécriture des URL médias Android n'a pas été appliquée.")
           if "push.bundle.js" not in html:
               html = html.replace("</body>", '  <script src="push.bundle.js"></script>\n</body>', 1)
