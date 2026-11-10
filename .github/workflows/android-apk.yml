@@ -67,7 +67,7 @@ jobs:
           if "netchaStockageSession" not in auth:
               raise SystemExit("Gestion de session Netcha absente du fichier auth.js de production.")
           if "push.bundle.js" not in html:
-              html = html.replace("</body>", '  <script src="push.bundle.js"></script>\\n</body>', 1)
+              html = html.replace("</body>", '  <script src="push.bundle.js"></script>\n</body>', 1)
           Path("www/index.html").write_text(html, encoding="utf-8")
           print("Interface téléchargée depuis Railway production.")
           print("index.html SHA-256:", hashlib.sha256(html.encode()).hexdigest())
