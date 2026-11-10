@@ -30,6 +30,23 @@ jobs:
       - name: Install wrapper dependencies
         run: npm install
 
+      - name: Refresh Android shell from the latest Netcha web app
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/pharellbitang-bit/Netcha/main/index.html -o www/index.html
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("www/index.html")
+          html = path.read_text(encoding="utf-8")
+          if 'src="auth.js"' not in html and "src='auth.js'" not in html:
+              raise SystemExit("Le shell Netcha actuel ne charge pas auth.js : arrêt pour éviter une APK sans session/API.")
+          if "push.bundle.js" not in html:
+              if "</body>" not in html:
+                  raise SystemExit("Balise </body> introuvable dans le shell Netcha.")
+              html = html.replace("</body>", '  <script src="push.bundle.js"></script>\\n</body>', 1)
+          path.write_text(html, encoding="utf-8")
+          print("Shell Netcha actuel intégré ; pont Firebase chargé après auth.js.")
+          PY
+
       - name: Bundle native Firebase Messaging bridge
         run: npx esbuild www/push.js --bundle --format=iife --platform=browser --target=es2020 --outfile=www/push.bundle.js
 
