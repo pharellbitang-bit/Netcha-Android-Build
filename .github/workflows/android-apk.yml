@@ -66,6 +66,17 @@ jobs:
               raise SystemExit("auth.js ne pointe pas vers l'API Netcha de production.")
           if "netchaStockageSession" not in auth:
               raise SystemExit("Gestion de session Netcha absente du fichier auth.js de production.")
+          # Dans une APK Capacitor, les URL /api/media relatives pointent par défaut
+          # vers capacitor://localhost. Les balises img/video ne passent pas par fetch(),
+          # donc le proxy API de auth.js ne les réécrit pas. On les rend absolues vers
+          # la même API de production, uniquement dans la copie embarquée de l'APK.
+          ancienne_route = "return compte.test(valeur)||ancien.test(valeur)?valeur:'';"
+          nouvelle_route = "return compte.test(valeur)||ancien.test(valeur)?('https://gentle-tranquility-production-db0a.up.railway.app'+valeur):'';"
+          if ancienne_route not in html:
+              raise SystemExit("Fonction mediaUrlNetcha introuvable ou modifiée : arrêt pour éviter une APK incomplète.")
+          html = html.replace(ancienne_route, nouvelle_route, 1)
+          if nouvelle_route not in html:
+              raise SystemExit("La réécriture des URL médias Android n'a pas été appliquée.")
           if "push.bundle.js" not in html:
               html = html.replace("</body>", '  <script src="push.bundle.js"></script>\n</body>', 1)
           Path("www/index.html").write_text(html, encoding="utf-8")
