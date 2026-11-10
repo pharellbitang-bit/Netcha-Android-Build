@@ -80,7 +80,7 @@ jobs:
            const ancien=/^\\/api\\/media\\/public\\/public\\/[0-9a-f-]{36}\\/[0-9a-f]{32}\\.(?:jpg|jpeg|png|webp|gif)$/i;
            return compte.test(valeur)||ancien.test(valeur)?('https://gentle-tranquility-production-db0a.up.railway.app'+valeur):'';
           }"""
-          html, remplacements = re.subn(r"function\\s+mediaUrlNetcha\\s*\\(url\\)\\s*\\{.*?\\n\\}", nouvelle_fonction, html, count=1, flags=re.S)
+          html, remplacements = re.subn(r"function\s+mediaUrlNetcha\s*\(url\)\s*\{.*?\n\}", lambda _match: nouvelle_fonction, html, count=1, flags=re.S)
           if remplacements != 1:
               raise SystemExit("Fonction mediaUrlNetcha introuvable : arrêt pour éviter une APK incomplète.")
           if "gentle-tranquility-production-db0a.up.railway.app'+valeur" not in html:
