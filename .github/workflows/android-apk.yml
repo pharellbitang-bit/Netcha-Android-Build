@@ -30,9 +30,9 @@ jobs:
       - name: Install wrapper dependencies
         run: npm install
 
-      - name: Refresh Android shell from the latest Netcha web app
+      - name: Prepare the checked-in Netcha shell for Android
         run: |
-          curl -fsSL https://raw.githubusercontent.com/pharellbitang-bit/Netcha/main/index.html -o www/index.html
+          test -s www/index.html || { echo "Shell Netcha absent du dépôt Android"; exit 1; }
           python3 - <<'PY'
           from pathlib import Path
           path = Path("www/index.html")
