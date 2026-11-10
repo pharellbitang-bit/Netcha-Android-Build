@@ -3949,4 +3949,5 @@ async function netchaCommenterPublicationPage(id){
 }
 async function netchaSupprimerPublicationPage(id){if(!confirm('Supprimer cette publication ?'))return;try{await requeteNetcha('/api/pages/posts/'+id+'/delete',{method:'POST',body:'{}'});await netchaActualiserPageActive()}catch(e){toast(e.message)}}
 </script>
+<script src="push.bundle.js"></script>
 </body></html>
