@@ -30,21 +30,49 @@ jobs:
       - name: Install wrapper dependencies
         run: npm install
 
-      - name: Prepare the checked-in Netcha shell for Android
+      - name: Download the exact current Netcha production interface
+        env:
+          NETCHA_PRODUCTION_URL: https://gentle-tranquility-production-db0a.up.railway.app
+        shell: bash
         run: |
-          test -s www/index.html || { echo "Shell Netcha absent du dépôt Android"; exit 1; }
+          set -euo pipefail
+          mkdir -p www
+          BASE_URL="${NETCHA_PRODUCTION_URL%/}"
+          CACHE_KEY="${GITHUB_SHA}-${GITHUB_RUN_ID}"
+          curl --fail --location --retry 3 --retry-all-errors --max-time 90 \
+            -H 'Cache-Control: no-cache' \
+            "${BASE_URL}/?apk_build=${CACHE_KEY}" -o www/index.html
+          curl --fail --location --retry 3 --retry-all-errors --max-time 90 \
+            -H 'Cache-Control: no-cache' \
+            "${BASE_URL}/auth.js?apk_build=${CACHE_KEY}" -o www/auth.js
+          for asset in manifest.webmanifest legal.html delete-account.html delete-account.js icons/netcha.svg assets/netcha-welcome-community.svg; do
+            mkdir -p "www/$(dirname "$asset")"
+            curl --fail --location --retry 3 --retry-all-errors --max-time 60 \
+              -H 'Cache-Control: no-cache' \
+              "${BASE_URL}/${asset}?apk_build=${CACHE_KEY}" -o "www/${asset}"
+          done
           python3 - <<'PY'
           from pathlib import Path
-          path = Path("www/index.html")
-          html = path.read_text(encoding="utf-8")
+          import hashlib
+          html = Path("www/index.html").read_text(encoding="utf-8")
+          auth = Path("www/auth.js").read_text(encoding="utf-8")
+          if len(html) < 100000:
+              raise SystemExit("Interface de production trop courte : arrêt, aucune ancienne interface de secours.")
           if 'src="auth.js"' not in html and "src='auth.js'" not in html:
-              raise SystemExit("Le shell Netcha actuel ne charge pas auth.js : arrêt pour éviter une APK sans session/API.")
+              raise SystemExit("L'interface de production ne charge pas auth.js.")
+          if "</body>" not in html:
+              raise SystemExit("Balise </body> absente de l'interface de production.")
+          if "gentle-tranquility-production-db0a.up.railway.app" not in auth:
+              raise SystemExit("auth.js ne pointe pas vers l'API Netcha de production.")
+          if "netchaStockageSession" not in auth:
+              raise SystemExit("Gestion de session Netcha absente du fichier auth.js de production.")
           if "push.bundle.js" not in html:
-              if "</body>" not in html:
-                  raise SystemExit("Balise </body> introuvable dans le shell Netcha.")
-              html = html.replace("</body>", '  <script src="push.bundle.js"></script>\n</body>', 1)
-          path.write_text(html, encoding="utf-8")
-          print("Shell Netcha actuel intégré ; pont Firebase chargé après auth.js.")
+              html = html.replace("</body>", '  <script src="push.bundle.js"></script>\\n</body>', 1)
+          Path("www/index.html").write_text(html, encoding="utf-8")
+          print("Interface téléchargée depuis Railway production.")
+          print("index.html SHA-256:", hashlib.sha256(html.encode()).hexdigest())
+          print("auth.js SHA-256:", hashlib.sha256(auth.encode()).hexdigest())
+          print("Taille index.html:", len(html), "| taille auth.js:", len(auth))
           PY
 
       - name: Bundle native Firebase Messaging bridge
