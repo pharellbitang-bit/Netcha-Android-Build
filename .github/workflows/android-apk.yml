@@ -144,17 +144,23 @@ jobs:
           NETCHA_GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.NETCHA_GOOGLE_SERVICES_JSON_BASE64 }}
         shell: bash
         run: |
-          set +e
+          set -euo pipefail
           if [ -z "$NETCHA_GOOGLE_SERVICES_JSON_BASE64" ]; then
-            echo "::notice::Firebase configuration not supplied; APK will build without active FCM."
-            exit 0
+            echo "::error::Firebase configuration missing: refusing to build an APK without push notifications."
+            exit 1
           fi
-          printf '%s' "$NETCHA_GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > /tmp/netcha-google-services.json 2>/dev/null
-          if [ $? -ne 0 ] || ! python3 -c "import json; d=json.load(open('/tmp/netcha-google-services.json')); assert any(x.get('client_info',{}).get('android_client_info',{}).get('package_name') == 'com.netcha.app' for x in d.get('client',[]))" 2>/dev/null; then
-            echo "::warning::Firebase config secret is invalid or is not for com.netcha.app; building APK without FCM."
-            rm -f /tmp/netcha-google-services.json
-            exit 0
-          fi
+          printf '%s' "$NETCHA_GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > /tmp/netcha-google-services.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          config = json.loads(Path("/tmp/netcha-google-services.json").read_text())
+          clients = config.get("client", [])
+          if not any(x.get("client_info", {}).get("android_client_info", {}).get("package_name") == "com.netcha.app" for x in clients):
+              raise SystemExit("Firebase config does not contain Android package com.netcha.app.")
+          if not config.get("project_info", {}).get("project_id"):
+              raise SystemExit("Firebase project_id is missing from google-services.json.")
+          print("Firebase Android configuration validated for com.netcha.app.")
+          PY
           mkdir -p android/app
           cp /tmp/netcha-google-services.json android/app/google-services.json
           python3 - <<'PY'
