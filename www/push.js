@@ -61,6 +61,7 @@ import { LocalNotifications } from '@capacitor/local-notifications';
           }
           if (permissions.receive !== 'granted') {
             console.info('[Netcha push] Autorisation Android non accordée.');
+            initialisation = null;
             return;
           }
           const result = await FirebaseMessaging.getToken();
@@ -69,6 +70,24 @@ import { LocalNotifications } from '@capacitor/local-notifications';
             transmettreJeton(event?.token).catch(error =>
               console.warn('[Netcha push] Renouvellement du jeton impossible.', error)
             );
+          });
+          await FirebaseMessaging.addListener('notificationReceived', async event => {
+            const notification = event?.notification || {};
+            const title = String(notification.title || 'Netcha').slice(0, 100);
+            const body = String(notification.body || 'Tu as une nouvelle notification.').slice(0, 240);
+            try {
+              await LocalNotifications.schedule({
+                notifications: [{
+                  id: Math.floor(Date.now() % 2147483647),
+                  title,
+                  body,
+                  channelId: 'messages',
+                  schedule: { at: new Date(Date.now() + 150) }
+                }]
+              });
+            } catch (error) {
+              console.warn('[Netcha push] Affichage local au premier plan impossible.', error);
+            }
           });
           await FirebaseMessaging.addListener('notificationActionPerformed', event => {
             const data = event?.notification?.data || {};
