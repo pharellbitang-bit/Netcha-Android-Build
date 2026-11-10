@@ -84,7 +84,7 @@ jobs:
               marker = "<application"
               if marker not in content:
                   raise SystemExit("Balise <application> introuvable")
-              content = content.replace(marker, "\n".join(missing) + "\\n    " + marker, 1)
+              content = content.replace(marker, "\n".join(missing) + "\n    " + marker, 1)
 
           manifest.write_text(content, encoding="utf-8")
           check = manifest.read_text(encoding="utf-8")
@@ -124,18 +124,18 @@ jobs:
               marker = "dependencies {"
               if marker not in text:
                   raise SystemExit("Bloc dependencies Gradle racine introuvable")
-              text = text.replace(marker, marker + "\\n        " + plugin, 1)
+              text = text.replace(marker, marker + "\n        " + plugin, 1)
               root.write_text(text)
           text = app.read_text()
           if "com.google.gms.google-services" not in text:
               marker = "apply plugin: 'com.android.application'"
               if marker in text:
-                  text = text.replace(marker, marker + "\\napply plugin: 'com.google.gms.google-services'", 1)
+                  text = text.replace(marker, marker + "\napply plugin: 'com.google.gms.google-services'", 1)
               else:
                   marker = "plugins {"
                   if marker not in text:
                       raise SystemExit("Bloc plugins Gradle app introuvable")
-                  text = text.replace(marker, marker + "\\n    id 'com.google.gms.google-services'", 1)
+                  text = text.replace(marker, marker + "\n    id 'com.google.gms.google-services'", 1)
               app.write_text(text)
           print("Google Services Gradle plugin configured.")
           PY
