@@ -2754,7 +2754,7 @@ async function netchaAdminChargerSignalements(statut='nouveau'){
 }
 async function netchaAdminAppliquerActionSignalementNetcha(signalementId,action,nom){
  const suspend=action==='suspension';
- const confirmation=await dialogueNetcha({title:suspend?'Suspendre ce compte ?':'Restaurer ce compte ?',description:suspend?'Le membre sera déconnecté de tous ses appareils et son compte sera masqué jusqu’à une restauration par la modération.':'Le compte sera réactivé et pourra se reconnecter. Vérifie que la suspension ne doit plus s’appliquer.',fields:[],confirmText:suspend?'Confirmer la suspension':'Confirmer la restauration',cancelText:'Annuler',danger:suspend});
+ const confirmation=await dialogueNetcha({title:suspend?'Suspendre ce compte ?':'Restaurer ce compte ?',description:suspend?'Le membre sera déconnecté de tous ses appareils et son compte sera suspendu jusqu’à une restauration par la modération.':'Le compte sera réactivé et pourra se reconnecter. Vérifie que la suspension ne doit plus s’appliquer.',fields:[],confirmText:suspend?'Confirmer la suspension':'Confirmer la restauration',cancelText:'Annuler',danger:suspend});
  if(!confirmation)return;
  try{await netchaWalletApi('/api/admin/reports/action','POST',{signalement_id:signalementId,action});toast(suspend?'Compte suspendu et sessions révoquées.':'Compte restauré.');await netchaAdminChargerSignalements('tous')}
  catch(e){toast(e.message||'Action de modération impossible.')}
