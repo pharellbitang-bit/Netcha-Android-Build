@@ -13,7 +13,7 @@ class AndroidReportingUiContractTests(unittest.TestCase):
         cls.ui = UI_PATH.read_text(encoding="utf-8")
 
     def test_report_helper_uses_only_supported_target_types(self):
-        used = set(re.findall(r"boutonSignalementNetcha\\('([^']+)'", self.ui))
+        used = set(re.findall(r"boutonSignalementNetcha\('([^']+)'", self.ui))
         self.assertTrue(used)
         self.assertLessEqual(used, {"compte", "publication", "message", "story"})
 
