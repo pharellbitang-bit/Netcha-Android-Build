@@ -28,7 +28,8 @@ class AndroidReportingUiContractTests(unittest.TestCase):
             "story and circle comments": "boutonSignalementNetcha('publication','commentaire:",
             "circle itself": "Signaler ce cercle",
             "circle publications": "boutonSignalementNetcha('publication',p.id,p.auteur_id)",
-            "Flash and events": "boutonSignalementNetcha('publication','evenement:'",
+            "Flash": "boutonSignalementNetcha('publication','flash:'",
+            "events": "boutonSignalementNetcha('publication','evenement:'",
         }
         for surface, marker in markers.items():
             with self.subTest(surface=surface):
