@@ -52,6 +52,13 @@
   .auth-tab[aria-selected="true"]{color:#fff;background:linear-gradient(110deg,#7C3AED,#EC4899);box-shadow:0 5px 18px #7c3aed35}
   .auth-form[hidden]{display:none!important}
   .auth-form label{display:block;color:#c4cede;font-size:12px;font-weight:700;margin:12px 0 6px}
+  .auth-form .auth-legal-consents{width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:12px}
+  .auth-form .auth-legal-consents label{display:flex!important;align-items:flex-start;gap:10px;width:100%;box-sizing:border-box;margin:0!important;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+  .auth-form .auth-legal-consents input[type=checkbox]{display:block;width:20px!important;min-width:20px;height:20px;flex:0 0 20px;margin:2px 0 0;padding:0;accent-color:#8b5cf6}
+  .auth-form .auth-legal-consents span{display:block;flex:1;min-width:0}
+  .auth-form .auth-legal-consents a,.auth-form .auth-legal-consents a:visited{color:#67e8f9!important;text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:3px;font-weight:800}
+  .auth-form .auth-legal-consents a:hover,.auth-form .auth-legal-consents a:focus-visible{color:#a5f3fc!important}
+  .auth-form .auth-legal-consents a:focus-visible{outline:2px solid #67e8f9;outline-offset:3px;border-radius:3px}
   .auth-form input,.auth-form select{display:block;width:100%;min-width:0;background:#0b1018;border:1px solid #29394e;border-radius:13px;padding:13px;color:#f4f8ff;outline:none}
   .auth-form input:focus,.auth-form select:focus{border-color:#7C3AED;box-shadow:0 0 0 3px #7C3AED30}
   .auth-submit{width:100%;margin-top:18px;min-height:47px;border:0;border-radius:13px;background:linear-gradient(110deg,#7C3AED,#EC4899);color:#fff;font-weight:850}
@@ -79,20 +86,23 @@
     <form id="netchaSignupForm" class="auth-form" autocomplete="on">
       <label for="netchaSignupName">Nom complet</label><input id="netchaSignupName" name="nom_affiche" placeholder="Ton nom complet" maxlength="80" autocomplete="name" required>
       <label for="netchaSignupUsername">Nom d’utilisateur</label><input id="netchaSignupUsername" name="identifiant" placeholder="Ex. Jean Paul ou jean_23" minlength="2" maxlength="30" autocomplete="username" required><small style="display:block;color:#98a8ba;font-size:11px;margin-top:6px">Tu peux utiliser des accents et des espaces ; les espaces seront convertis automatiquement en _.</small>
+      <label for="netchaSignupCountry">Pays de résidence (obligatoire)</label><select id="netchaSignupCountry" name="pays_code" required><option value="">Sélectionne ton pays…</option><option value="CM">Cameroun</option><option value="SN">Sénégal</option><option value="CI">Côte d’Ivoire</option><option value="GH">Ghana</option><option value="NG">Nigeria</option><option value="KE">Kenya</option><option value="UG">Ouganda</option><option value="TZ">Tanzanie</option><option value="RW">Rwanda</option><option value="CD">RDC</option><option value="CG">Congo</option><option value="GA">Gabon</option><option value="BJ">Bénin</option><option value="TG">Togo</option><option value="BF">Burkina Faso</option><option value="ML">Mali</option><option value="NE">Niger</option><option value="GM">Gambie</option><option value="SL">Sierra Leone</option><option value="LR">Liberia</option><option value="ZA">Afrique du Sud</option><option value="ET">Éthiopie</option><option value="EG">Égypte</option><option value="MA">Maroc</option><option value="DZ">Algérie</option><option value="TN">Tunisie</option><option value="AO">Angola</option><option value="MZ">Mozambique</option><option value="ZM">Zambie</option><option value="ZW">Zimbabwe</option><option value="BW">Botswana</option><option value="NA">Namibie</option><option value="MW">Malawi</option><option value="MG">Madagascar</option><option value="MU">Maurice</option><option value="SC">Seychelles</option><option value="CV">Cap-Vert</option><option value="GW">Guinée-Bissau</option><option value="GN">Guinée</option><option value="GQ">Guinée équatoriale</option><option value="ST">São Tomé-et-Príncipe</option><option value="SS">Soudan du Sud</option><option value="SD">Soudan</option><option value="SO">Somalie</option><option value="ER">Érythrée</option><option value="DJ">Djibouti</option><option value="LY">Libye</option><option value="MR">Mauritanie</option><option value="BI">Burundi</option><option value="KM">Comores</option><option value="LS">Lesotho</option><option value="SZ">Eswatini</option><option value="CF">RCA</option><option value="TD">Tchad</option></select>
       <label for="netchaSignupEmail">Adresse e-mail</label><input id="netchaSignupEmail" name="email" type="email" placeholder="nom@exemple.com" autocomplete="email" maxlength="254" required>
-      <label for="netchaSignupBirthYear">Accès rapide à l’année de naissance</label><select id="netchaSignupBirthYear" aria-label="Choisir rapidement l’année de naissance"><option value="">Choisir une année…</option></select><label for="netchaSignupBirth">Date de naissance complète</label><input id="netchaSignupBirth" name="date_naissance" type="date" autocomplete="bday" required aria-describedby="netchaBirthHint"><small id="netchaBirthHint" style="display:block;color:#98a8ba;font-size:11px;margin-top:6px">Il faut avoir au moins 13 ans pour créer un compte. Ta date de naissance n’est pas affichée publiquement.</small>
+      <label for="netchaSignupBirthYear">Accès rapide à l’année de naissance</label><select id="netchaSignupBirthYear" aria-label="Choisir rapidement l’année de naissance"><option value="">Choisir une année…</option></select><label for="netchaSignupBirth">Date de naissance complète</label><input id="netchaSignupBirth" name="date_naissance" type="date" autocomplete="bday" required aria-describedby="netchaBirthHint"><small id="netchaBirthHint" style="display:block;color:#98a8ba;font-size:11px;margin-top:6px">Il faut avoir au moins 18 ans pour créer un compte. Ta date de naissance n’est pas affichée publiquement.</small>
       <label for="netchaSignupGender">Genre (facultatif)</label><select id="netchaSignupGender" name="genre" autocomplete="sex"><option value="">Choisir…</option><option value="FEMME">Femme</option><option value="HOMME">Homme</option><option value="PERSONNALISE">Personnalisé</option><option value="PREFERE_NE_PAS_REPONDRE">Préfère ne pas répondre</option></select>
-      <label for="netchaSignupPhone">Téléphone (facultatif, pour retrouver tes contacts)</label><input id="netchaSignupPhone" name="telephone" type="tel" placeholder="+237 6XX XX XX XX" autocomplete="tel" inputmode="tel" maxlength="25" aria-describedby="netchaPhoneHint"><small id="netchaPhoneHint" style="display:block;color:#98a8ba;font-size:11px;margin-top:6px">Tu peux laisser ce champ vide. Ajoute ton numéro si tu veux faciliter la découverte par tes contacts Netcha.</small>
-      <label for="netchaSignupPassword">Mot de passe</label><input id="netchaSignupPassword" name="mot_de_passe" type="password" placeholder="8 caractères minimum" minlength="8" maxlength="128" autocomplete="new-password" aria-describedby="netchaPasswordHint" required><small id="netchaPasswordHint" style="display:block;color:#98a8ba;font-size:11px;margin-top:6px">8 caractères minimum. Choisis un mot de passe personnel et difficile à deviner.</small><label for="netchaSignupPasswordConfirm">Confirmer le mot de passe</label><input id="netchaSignupPasswordConfirm" name="mot_de_passe_confirmation" type="password" placeholder="Saisis le même mot de passe" minlength="8" maxlength="128" autocomplete="new-password" required>
+      <label for="netchaSignupPhone">Téléphone (obligatoire)</label><input id="netchaSignupPhone" name="telephone" type="tel" placeholder="+237 6XX XX XX XX" autocomplete="tel" inputmode="tel" maxlength="25" required aria-describedby="netchaPhoneHint"><small id="netchaPhoneHint" style="display:block;color:#98a8ba;font-size:11px;margin-top:6px">Saisis ton numéro au format international correspondant au pays choisi. Un même numéro peut être associé à cinq comptes maximum.</small>
+      <label for="netchaSignupPassword">Mot de passe</label><input id="netchaSignupPassword" name="mot_de_passe" type="password" placeholder="12 caractères minimum" minlength="12" maxlength="128" autocomplete="new-password" aria-describedby="netchaPasswordHint" required><small id="netchaPasswordHint" style="display:block;color:#98a8ba;font-size:11px;margin-top:6px">12 caractères minimum. Choisis un mot de passe personnel et difficile à deviner.</small><label for="netchaSignupPasswordConfirm">Confirmer le mot de passe</label><input id="netchaSignupPasswordConfirm" name="mot_de_passe_confirmation" type="password" placeholder="Saisis le même mot de passe" minlength="12" maxlength="128" autocomplete="new-password" required>
+      <div class="auth-legal-consents" style="margin:14px 0;padding:12px;border:1px solid #34475e;border-radius:12px;background:#101a26">
+<label style="display:flex;gap:9px;align-items:flex-start;font-size:12px;line-height:1.5;margin:0 0 10px"><input type="checkbox" name="accept_cgu" value="1" required style="margin-top:3px;flex:0 0 auto"><span>J’accepte les <a href="/legal.html#conditions" target="_blank" rel="noopener">Conditions générales d’utilisation (CGU)</a>.</span></label>
+<label style="display:flex;gap:9px;align-items:flex-start;font-size:12px;line-height:1.5;margin:0"><input type="checkbox" name="accept_confidentialite" value="1" required style="margin-top:3px;flex:0 0 auto"><span>Je confirme avoir lu la <a href="/legal.html#donnees" target="_blank" rel="noopener">Politique de confidentialité</a> et compris les informations sur mes données personnelles.</span></label>
+</div>
       <button class="auth-submit" type="submit">Créer mon compte</button>
     </form>
     <form id="netchaLoginForm" class="auth-form" autocomplete="on" hidden>
       <label for="netchaLoginUsername">Identifiant, e-mail ou téléphone</label><input id="netchaLoginUsername" name="identifiant" placeholder="Ton identifiant, e-mail ou +237…" autocomplete="username" required>
       <label for="netchaLoginPassword">Mot de passe</label><input id="netchaLoginPassword" name="mot_de_passe" type="password" placeholder="Ton mot de passe" autocomplete="current-password" required>
-      <button class="auth-submit" type="submit">Se connecter</button><button type="button" class="auth-link" id="netchaForgotPassword" style="display:block;margin:12px auto 0;border:0;background:transparent;color:#c4b5fd;font-size:12px;font-weight:800;text-decoration:underline">Mot de passe oublié ?</button>
+      <button class="auth-submit" type="submit">Se connecter</button>
     </form>
-    <form id="netchaRecoveryForm" class="auth-form" autocomplete="on" hidden><label for="netchaRecoveryEmail">Adresse e-mail du compte</label><input id="netchaRecoveryEmail" name="email" type="email" autocomplete="email" maxlength="254" placeholder="nom@exemple.com" required><p style="color:#98a8ba;font-size:12px;line-height:1.5">Nous enverrons un lien sécurisé valable 30 minutes si l’adresse est associée à un compte.</p><button class="auth-submit" type="submit">Envoyer le lien</button><button type="button" class="auth-link" data-auth-back="login" style="display:block;margin:12px auto 0;border:0;background:transparent;color:#c4b5fd;font-size:12px;font-weight:800">Retour à la connexion</button></form>
-    <form id="netchaResetForm" class="auth-form" autocomplete="on" hidden><label for="netchaResetPassword">Nouveau mot de passe</label><input id="netchaResetPassword" name="password" type="password" minlength="8" maxlength="128" autocomplete="new-password" required placeholder="12 caractères minimum"><label for="netchaResetPasswordConfirm">Confirmer le nouveau mot de passe</label><input id="netchaResetPasswordConfirm" name="password_confirmation" type="password" minlength="8" maxlength="128" autocomplete="new-password" required placeholder="Saisis le même mot de passe"><button class="auth-submit" type="submit">Enregistrer le nouveau mot de passe</button></form>
     <p id="netchaAuthMessage" class="auth-message" aria-live="polite"></p>
   </section>`;
   document.body.appendChild(modal);
@@ -114,30 +124,17 @@
     }
   });
   const loginForm=document.getElementById('netchaLoginForm');
-  const recoveryForm=document.getElementById('netchaRecoveryForm');
-  const resetForm=document.getElementById('netchaResetForm');
   const message=document.getElementById('netchaAuthMessage');
-  // Évite l'erreur cryptique « Unexpected token < » et signale les réponses HTML.
-  async function lireJsonNetcha(response){
-    const texte=await response.text();
-    try{return texte?JSON.parse(texte):{}}
-    catch(_){
-      const type=response.headers.get('content-type')||'inconnu';
-      const statut=response.status||'inconnu';
-      throw new Error('Le serveur Netcha a renvoyé une page web au lieu des données de connexion (HTTP '+statut+', '+type+'). Vérifie la connexion réseau ou réessaie dans quelques instants.');
-    }
-  }
   const title=document.getElementById('netchaAuthTitle');
   let lastFocus=null;
 
   function switchTab(which){
-    const signup=which==='signup',login=which==='login',recovery=which==='recovery',reset=which==='reset';
-    signupForm.hidden=!signup;loginForm.hidden=!login;recoveryForm.hidden=!recovery;resetForm.hidden=!reset;
-    signupTab.setAttribute('aria-selected',String(signup));loginTab.setAttribute('aria-selected',String(login));
-    title.textContent=signup?'Créer ton compte Netcha':login?'Bon retour sur Netcha':recovery?'Récupérer mon compte':'Choisir un nouveau mot de passe';
+    const signup=which==='signup';
+    signupForm.hidden=!signup;loginForm.hidden=signup;
+    signupTab.setAttribute('aria-selected',String(signup));loginTab.setAttribute('aria-selected',String(!signup));
+    title.textContent=signup?'Créer ton compte Netcha':'Bon retour sur Netcha';
     message.textContent='';message.removeAttribute('data-error');
-    const active=signup?signupForm:login?loginForm:recovery?recoveryForm:resetForm;
-    active.querySelector('input')?.focus();
+    (signup?signupForm:loginForm).querySelector('input')?.focus();
   }
   function openAuth(which='signup'){
     lastFocus=document.activeElement;switchTab(which);
@@ -155,8 +152,6 @@
   window.addEventListener('netcha:auth',actualiserLibelleCompte);
   signupTab.addEventListener('click',()=>switchTab('signup'));
   loginTab.addEventListener('click',()=>switchTab('login'));
-  document.getElementById('netchaForgotPassword').addEventListener('click',()=>{recoveryForm.elements.email.value=loginForm.elements.identifiant.value.includes('@')?loginForm.elements.identifiant.value:'';switchTab('recovery')});
-  modal.querySelectorAll('[data-auth-back]').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.authBack)));
   document.getElementById('netchaAuthClose').addEventListener('click',closeAuth);
   modal.addEventListener('click',e=>{if(e.target===modal)closeAuth()});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal.classList.contains('is-open'))closeAuth()});
@@ -164,7 +159,7 @@
   async function afficherProfilNetcha(){
     const token=stockageNetcha.get();if(!token)return;
     const r=await fetch('/api/profile',{headers:{Authorization:'Bearer '+token}});
-    const d=await lireJsonNetcha(r);if(!r.ok)throw new Error(d.erreur||'Profil indisponible');
+    const d=await r.json();if(!r.ok)throw new Error(d.erreur||'Profil indisponible');
     const profil=d.profil||{},nomAffiche=profil.nom_affiche||profil.identifiant||'Utilisateur',identifiant=profil.identifiant||'';
     const profilZone=document.querySelector('#profile .profile-hero');
     if(profilZone){
@@ -177,26 +172,35 @@
   }
 
 
+  // Les anciens comptes doivent compléter pays + téléphone dans un seul formulaire.
+  // Ne pas afficher l'ancien écran pays-seul, qui bloquait la saisie du numéro.
+  async function verifierPaysCompteNetcha(){
+    return true;
+  }
+
   async function verifierCompletionCompteNetcha(){
     const token=stockageNetcha.get();if(!token)return;
     try{
       const r=await fetch('/api/account/identity',{headers:{Authorization:'Bearer '+token}});
-      const d=await lireJsonNetcha(r);if(!r.ok)throw new Error(d.erreur||'Informations de compte indisponibles');
+      const d=await r.json();if(!r.ok)throw new Error(d.erreur||'Informations de compte indisponibles');
       const identite=d.identite||{};
-      if(identite.email&&identite.date_naissance)return;
+      if(identite.email&&identite.telephone&&identite.date_naissance&&identite.telephone_pays_valide===true)return;
       let modal=document.getElementById('netchaIdentityModal');
       if(!modal){
         modal=document.createElement('div');modal.id='netchaIdentityModal';
         modal.style.cssText='position:fixed;inset:0;z-index:10000;background:#070b12ef;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto';
-        modal.innerHTML='<section role="dialog" aria-modal="true" aria-labelledby="netchaIdentityTitle" style="width:min(460px,100%);background:#111a26;border:1px solid #35475b;border-radius:22px;padding:22px;color:#f4f8ff;box-shadow:0 20px 80px #0009"><h2 id="netchaIdentityTitle" style="margin:0 0 8px">Sécurise ton compte Netcha</h2><p style="color:#c4cede;font-size:13px;line-height:1.5">Ton compte existant est conservé. Ajoute une adresse e-mail à ton compte pour compléter les informations requises, sans créer un autre compte.</p><form id="netchaIdentityForm"><label for="netchaIdentityEmail" style="display:block;margin:12px 0 5px;font-size:12px;font-weight:700">Adresse e-mail</label><input id="netchaIdentityEmail" name="email" type="email" required autocomplete="email" maxlength="254" style="width:100%;box-sizing:border-box;padding:13px;border-radius:12px;border:1px solid #35475b;background:#0b1018;color:white"><label for="netchaIdentityBirthYear" style="display:block;margin:12px 0 5px;font-size:12px;font-weight:700">Accès rapide à l’année de naissance</label><select id="netchaIdentityBirthYear" aria-label="Choisir rapidement l’année de naissance" style="width:100%;box-sizing:border-box;padding:13px;border-radius:12px;border:1px solid #35475b;background:#0b1018;color:white"><option value="">Choisir une année…</option></select><label for="netchaIdentityBirth" style="display:block;margin:12px 0 5px;font-size:12px;font-weight:700">Date de naissance complète</label><input id="netchaIdentityBirth" name="date_naissance" type="date" autocomplete="bday" required style="width:100%;box-sizing:border-box;padding:13px;border-radius:12px;border:1px solid #35475b;background:#0b1018;color:white"><label for="netchaIdentityGender" style="display:block;margin:12px 0 5px;font-size:12px;font-weight:700">Genre</label><select id="netchaIdentityGender" name="genre" style="width:100%;box-sizing:border-box;padding:13px;border-radius:12px;border:1px solid #35475b;background:#0b1018;color:white"><option value="">Choisir…</option><option value="FEMME">Femme</option><option value="HOMME">Homme</option><option value="PERSONNALISE">Personnalisé</option><option value="PREFERE_NE_PAS_REPONDRE">Préfère ne pas répondre</option></select><label for="netchaIdentityPhone" style="display:block;margin:12px 0 5px;font-size:12px;font-weight:700">Téléphone (facultatif)</label><input id="netchaIdentityPhone" name="telephone" type="tel" autocomplete="tel" placeholder="+237 6XX XX XX XX" maxlength="25" style="width:100%;box-sizing:border-box;padding:13px;border-radius:12px;border:1px solid #35475b;background:#0b1018;color:white"><p id="netchaIdentityMessage" role="status" style="font-size:12px;color:#c4cede"></p><button id="netchaIdentitySubmit" type="submit" style="width:100%;padding:13px;border:0;border-radius:12px;background:linear-gradient(110deg,#7C3AED,#EC4899);color:white;font-weight:800">Enregistrer et continuer</button></form></section>';
+        const paysOptions=Array.from(document.querySelectorAll('#netchaSignupCountry option')).filter(o=>/^[A-Z]{2}$/.test(o.value)).map(o=>'<option value="'+o.value+'">'+o.textContent+'</option>').join('');
+        modal.innerHTML='<section role="dialog" aria-modal="true" aria-labelledby="netchaIdentityTitle" style="width:min(460px,100%);background:#111a26;border:1px solid #35475b;border-radius:22px;padding:22px;color:#f4f8ff;box-shadow:0 20px 80px #0009"><h2 id="netchaIdentityTitle" style="margin:0 0 8px">Sécurise ton compte Netcha</h2><p style="color:#c4cede;font-size:13px;line-height:1.5">Ton compte existant est conservé. Complète ton adresse e-mail, ton numéro de téléphone et ta date de naissance sans créer un autre compte.</p><form id="netchaIdentityForm"><label for="netchaIdentityEmail" style="display:block;margin:12px 0 5px;font-size:12px;font-weight:700">Adresse e-mail</label><input id="netchaIdentityEmail" name="email" type="email" required autocomplete="email" maxlength="254" style="width:100%;box-sizing:border-box;padding:13px;border-radius:12px;border:1px solid #35475b;background:#0b1018;color:white"><label for="netchaIdentityBirthYear" style="display:block;margin:12px 0 5px;font-size:12px;font-weight:700">Accès rapide à l’année de naissance</label><select id="netchaIdentityBirthYear" aria-label="Choisir rapidement l’année de naissance" style="width:100%;box-sizing:border-box;padding:13px;border-radius:12px;border:1px solid #35475b;background:#0b1018;color:white"><option value="">Choisir une année…</option></select><label for="netchaIdentityBirth" style="display:block;margin:12px 0 5px;font-size:12px;font-weight:700">Date de naissance complète</label><input id="netchaIdentityBirth" name="date_naissance" type="date" autocomplete="bday" required style="width:100%;box-sizing:border-box;padding:13px;border-radius:12px;border:1px solid #35475b;background:#0b1018;color:white"><label for="netchaIdentityGender" style="display:block;margin:12px 0 5px;font-size:12px;font-weight:700">Genre</label><select id="netchaIdentityGender" name="genre" style="width:100%;box-sizing:border-box;padding:13px;border-radius:12px;border:1px solid #35475b;background:#0b1018;color:white"><option value="">Choisir…</option><option value="FEMME">Femme</option><option value="HOMME">Homme</option><option value="PERSONNALISE">Personnalisé</option><option value="PREFERE_NE_PAS_REPONDRE">Préfère ne pas répondre</option></select><label for="netchaIdentityCountry" style="display:block;margin:12px 0 5px;font-size:12px;font-weight:700">Pays du compte (obligatoire)</label><select id="netchaIdentityCountry" name="pays_code" required style="width:100%;box-sizing:border-box;padding:13px;border-radius:12px;border:1px solid #35475b;background:#0b1018;color:white"><option value="">Sélectionne ton pays…</option>'+paysOptions+'</select><label for="netchaIdentityPhone" style="display:block;margin:12px 0 5px;font-size:12px;font-weight:700">Téléphone (obligatoire)</label><input id="netchaIdentityPhone" name="telephone" type="tel" autocomplete="tel" placeholder="+237 6XX XX XX XX" maxlength="25" required style="width:100%;box-sizing:border-box;padding:13px;border-radius:12px;border:1px solid #35475b;background:#0b1018;color:white"><p id="netchaIdentityMessage" role="status" style="font-size:12px;color:#c4cede"></p><button id="netchaIdentitySubmit" type="submit" style="width:100%;padding:13px;border:0;border-radius:12px;background:linear-gradient(110deg,#7C3AED,#EC4899);color:white;font-weight:800">Enregistrer et continuer</button></form></section>';
         document.body.appendChild(modal);
         installerRaccourciAnneeNaissance(document.getElementById('netchaIdentityBirth'),document.getElementById('netchaIdentityBirthYear'));
         modal.querySelector('#netchaIdentityForm').addEventListener('submit',async e=>{
           e.preventDefault();const form=e.currentTarget,button=modal.querySelector('#netchaIdentitySubmit'),msg=modal.querySelector('#netchaIdentityMessage');
           if(!form.reportValidity())return;button.disabled=true;msg.textContent='Enregistrement…';
           try{
-            const response=await fetch('/api/account/identity',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+stockageNetcha.get()},body:JSON.stringify({email:form.elements.email.value,telephone:form.elements.telephone.value,date_naissance:form.elements.date_naissance.value,genre:form.elements.genre.value})});
-            const result=await lireJsonNetcha(response);if(!response.ok)throw new Error(result.erreur||'Impossible d’enregistrer les coordonnées.');
+            const token=stockageNetcha.get();
+            const pays=form.elements.pays_code.value;
+            const response=await fetch('/api/account/identity',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({pays_code:pays,email:form.elements.email.value,telephone:form.elements.telephone.value,date_naissance:form.elements.date_naissance.value,genre:form.elements.genre.value})});
+            const result=await response.json();if(!response.ok)throw new Error(result.erreur||'Impossible d’enregistrer les coordonnées.');
             modal.remove();window.dispatchEvent(new Event('netcha:auth'));await afficherProfilNetcha();
           }catch(error){msg.textContent=error.message||'Erreur de connexion.';msg.style.color='#ffb6c1'}
           finally{button.disabled=false}
@@ -207,36 +211,9 @@
       if(form&&!form.elements.telephone.value)form.elements.telephone.value=identite.telephone||'';
       if(form&&!form.elements.date_naissance.value)form.elements.date_naissance.value=identite.date_naissance||'';
       if(form&&!form.elements.genre.value)form.elements.genre.value=identite.genre||'';
+      if(form&&!form.elements.pays_code.value)form.elements.pays_code.value=identite.pays_profil_code||identite.pays_code||'';
     }catch(error){console.warn('Vérification des coordonnées Netcha impossible',error)}
   }
-
-  recoveryForm.addEventListener('submit',async e=>{
-    e.preventDefault();if(!recoveryForm.reportValidity())return;
-    const button=recoveryForm.querySelector('button[type="submit"]');button.disabled=true;
-    message.textContent='Préparation du lien sécurisé…';message.removeAttribute('data-error');
-    try{
-      const r=await fetch('/api/password/forgot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:recoveryForm.elements.email.value})});
-      const d=await lireJsonNetcha(r);if(!r.ok)throw new Error(d.erreur||'Récupération indisponible.');
-      message.textContent=d.message||'Si cette adresse est associée à un compte, un lien sera envoyé.';
-    }catch(err){message.textContent=err.message||'La récupération est momentanément indisponible.';message.dataset.error='true'}
-    finally{button.disabled=false}
-  });
-  resetForm.addEventListener('submit',async e=>{
-    e.preventDefault();if(!resetForm.reportValidity())return;
-    const password=resetForm.elements.password.value,confirmation=resetForm.elements.password_confirmation.value;
-    if(password!==confirmation){message.textContent='Les deux mots de passe ne correspondent pas.';message.dataset.error='true';return}
-    const token=new URLSearchParams(window.location.search).get('reset');
-    if(!token){message.textContent='Le lien de récupération est manquant. Demande un nouveau lien.';message.dataset.error='true';return}
-    const button=resetForm.querySelector('button[type="submit"]');button.disabled=true;
-    message.textContent='Mise à jour sécurisée du mot de passe…';message.removeAttribute('data-error');
-    try{
-      const r=await fetch('/api/password/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,nouveau_mot_de_passe:password})});
-      const d=await lireJsonNetcha(r);if(!r.ok)throw new Error(d.erreur||'Réinitialisation impossible.');
-      window.history.replaceState({},document.title,window.location.pathname);
-      resetForm.reset();switchTab('login');message.textContent=d.message||'Mot de passe modifié. Reconnecte-toi.';
-    }catch(err){message.textContent=err.message||'Réinitialisation impossible.';message.dataset.error='true'}
-    finally{button.disabled=false}
-  });
 
   async function envoyer(form,route,type){
     form.addEventListener('submit',async e=>{
@@ -249,15 +226,15 @@
         const motDePasse=String(data.get('mot_de_passe')||'');
         const confirmation=String(data.get('mot_de_passe_confirmation')||'');
         if(motDePasse!==confirmation){message.textContent='Les deux mots de passe ne correspondent pas.';message.dataset.error='true';return}
-        if(motDePasse.length<8){message.textContent='Choisis un mot de passe de 8 caractères minimum.';message.dataset.error='true';return}
+        if(motDePasse.length<12){message.textContent='Choisis un mot de passe de 12 caractères minimum.';message.dataset.error='true';return}
       }
       submit.disabled=true;message.textContent='Connexion sécurisée en cours…';message.removeAttribute('data-error');
       try{
-        const r=await window.netchaApiFetch('/api/'+route,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        const r=await fetch('/api/'+route,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
           identifiant,nom_affiche:data.get('nom_affiche')||'',mot_de_passe:data.get('mot_de_passe'),
-          email:data.get('email')||null,telephone:data.get('telephone')||null,date_naissance:data.get('date_naissance')||null,genre:data.get('genre')||null,code_parrainage:(new URLSearchParams(window.location.search).get('invite')||'').toUpperCase()
+          email:data.get('email')||null,telephone:data.get('telephone')||null,pays_code:data.get('pays_code')||null,date_naissance:data.get('date_naissance')||null,genre:data.get('genre')||null,accept_cgu:data.get('accept_cgu')==='1',accept_confidentialite:data.get('accept_confidentialite')==='1',code_parrainage:(new URLSearchParams(window.location.search).get('invite')||'').toUpperCase()
         })});
-        const d=await lireJsonNetcha(r);
+        const d=await r.json();
         if(!r.ok)throw new Error(d.erreur||'Opération impossible.');
         if(type==='inscription'&&!d.token){
           message.textContent='Compte créé. Connecte-toi avec tes identifiants.';
@@ -280,7 +257,7 @@
             try{if(typeof window.netchaModules==='function') await window.netchaModules()}catch(err){console.warn('Modules Netcha indisponibles',err)}
             try{if(typeof window.netchaAppliquerLite==='function') await window.netchaAppliquerLite()}catch(err){console.warn('Réglages Netcha indisponibles',err)}
           }
-          await verifierCompletionCompteNetcha();
+          if(await verifierPaysCompteNetcha())await verifierCompletionCompteNetcha();
         }
       }catch(err){
         const texte=err.message||'Connexion impossible pour le moment.';
@@ -293,20 +270,23 @@
             /(téléphone|numéro)/i.test(texte)&&telephone?telephone:identifiant;
           loginForm.elements.identifiant.value=valeurConnexion;
           switchTab('login');
-          message.textContent=texte+' Si ces coordonnées appartiennent à ton ancien compte, connecte-toi avec celles-ci ou utilise « Mot de passe oublié ». Sinon, vérifie le champ déjà associé à un compte.';
+          message.textContent=texte+' Si ces coordonnées appartiennent à un compte existant, connecte-toi avec les identifiants utilisés lors de sa création.';
         }else{
           message.textContent=texte;
         }
-        message.dataset.error='true'
+        message.dataset.error='true';
+        message.setAttribute('role','alert');
+        message.setAttribute('aria-live','assertive');
+        requestAnimationFrame(()=>{message.scrollIntoView({behavior:'smooth',block:'nearest'});message.focus?.()});
       }
       finally{submit.disabled=false}
     });
   }
-  const limiteNaissance=new Date();limiteNaissance.setFullYear(limiteNaissance.getFullYear()-13);
-  const maxNaissance=limiteNaissance.toISOString().slice(0,10);
-  function installerRaccourciAnneeNaissance(input,select){
+  function installerRaccourciAnneeNaissance(input,select,ageMinimum=18){
     if(!input||!select||select.dataset.ready==='true')return;
     select.dataset.ready='true';
+    const limiteNaissance=new Date();limiteNaissance.setFullYear(limiteNaissance.getFullYear()-ageMinimum);
+    const maxNaissance=limiteNaissance.toISOString().slice(0,10);
     input.max=maxNaissance;
     const anneeMax=Number(maxNaissance.slice(0,4));
     const fragment=document.createDocumentFragment();
@@ -328,12 +308,11 @@
     synchroniserAnnee();
   }
   installerRaccourciAnneeNaissance(document.getElementById('netchaSignupBirth'),document.getElementById('netchaSignupBirthYear'));
-  const identityBirth=document.getElementById('netchaIdentityBirth');if(identityBirth)installerRaccourciAnneeNaissance(identityBirth,document.getElementById('netchaIdentityBirthYear'));
+  const identityBirth=document.getElementById('netchaIdentityBirth');if(identityBirth)installerRaccourciAnneeNaissance(identityBirth,document.getElementById('netchaIdentityBirthYear'),13);
   envoyer(signupForm,'register','inscription');
   envoyer(loginForm,'login','connexion');
-  if(stockageNetcha.get())afficherProfilNetcha().then(verifierCompletionCompteNetcha).catch(()=>{stockageNetcha.remove();window.dispatchEvent(new Event('netcha:auth'));openAuth('login')});
-  if(new URLSearchParams(window.location.search).has('reset'))openAuth('reset');
-  else if(!stockageNetcha.get())openAuth('signup');
+  if(stockageNetcha.get())afficherProfilNetcha().then(async()=>{if(await verifierPaysCompteNetcha())await verifierCompletionCompteNetcha()}).catch(()=>{stockageNetcha.remove();window.dispatchEvent(new Event('netcha:auth'));openAuth('login')});
+  if(!stockageNetcha.get())openAuth('signup');
 })();
 
 /* Découverte mondiale des cercles : catégories synchronisées avec le backend. */
