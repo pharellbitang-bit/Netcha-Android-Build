@@ -2741,9 +2741,23 @@ async function netchaAdminChargerSignalements(statut='nouveau'){
    const status=document.createElement('small');status.textContent='Statut : '+String(item.statut||'nouveau');card.appendChild(status);
    const actions=document.createElement('div');actions.style.cssText='display:flex;gap:7px;flex-wrap:wrap;margin-top:10px';
    [['en_examen','Prendre en examen'],['action_requise','Action requise'],['rejete','Rejeter'],['clos','Clore']].forEach(([value,label])=>{const b=document.createElement('button');b.type='button';b.className=value==='action_requise'?'primary':'secondary';b.textContent=label;b.disabled=item.statut===value;b.onclick=async()=>{b.disabled=true;try{await netchaWalletApi('/api/admin/reports/decision','POST',{signalement_id:item.id,statut:value});toast('Décision de modération enregistrée.');await netchaAdminChargerSignalements(statut)}catch(e){b.disabled=false;toast(e.message||'Décision impossible.')}};actions.appendChild(b)});
-   card.appendChild(actions);list.appendChild(card);
+   card.appendChild(actions);
+   if(item.cible_compte_id){
+    const moderationAction=document.createElement('button');moderationAction.type='button';moderationAction.className=item.compte_statut==='SUSPENDED'?'secondary':'primary';moderationAction.style.cssText='width:100%;margin-top:8px';
+    moderationAction.textContent=item.compte_statut==='SUSPENDED'?'Restaurer le compte signalé':'Suspendre le compte signalé';
+    moderationAction.onclick=()=>netchaAdminAppliquerActionSignalementNetcha(item.id,item.compte_statut==='SUSPENDED'?'restauration':'suspension',item.compte_signale||'ce membre');
+    card.appendChild(moderationAction);
+   }
+   list.appendChild(card);
   }
  }catch(e){list.textContent=e.message||'File de modération indisponible.'}
+}
+async function netchaAdminAppliquerActionSignalementNetcha(signalementId,action,nom){
+ const suspend=action==='suspension';
+ const confirmation=await dialogueNetcha({title:suspend?'Suspendre ce compte ?':'Restaurer ce compte ?',description:suspend?'Le membre sera déconnecté de tous ses appareils et son compte sera masqué jusqu’à une restauration par la modération.':'Le compte sera réactivé et pourra se reconnecter. Vérifie que la suspension ne doit plus s’appliquer.',fields:[],confirmText:suspend?'Confirmer la suspension':'Confirmer la restauration',cancelText:'Annuler',danger:suspend});
+ if(!confirmation)return;
+ try{await netchaWalletApi('/api/admin/reports/action','POST',{signalement_id:signalementId,action});toast(suspend?'Compte suspendu et sessions révoquées.':'Compte restauré.');await netchaAdminChargerSignalements('tous')}
+ catch(e){toast(e.message||'Action de modération impossible.')}
 }
 async function netchaAdminChargerFinance(){
  const zone=document.getElementById('netchaAdAdminPanel');if(!zone)return;
