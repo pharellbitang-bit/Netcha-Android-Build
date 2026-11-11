@@ -26,6 +26,7 @@ class AndroidReportingUiContractTests(unittest.TestCase):
             "private and group messages": "boutonSignalementNetcha('message'",
             "stories": "boutonSignalementNetcha('story'",
             "story and circle comments": "boutonSignalementNetcha('publication','commentaire:",
+            "circle suggestion cards": "boutonSignalementNetcha('publication','cercle:'+x.id,x.createur_id,'Signaler')",
             "circle itself": "Signaler ce cercle",
             "circle publications": "boutonSignalementNetcha('publication',p.id,p.auteur_id)",
             "Flash": "boutonSignalementNetcha('publication','flash:'",
