@@ -40,6 +40,11 @@ class AndroidReportingUiContractTests(unittest.TestCase):
         self.assertIn("requeteNetcha('/api/reports'", self.ui)
         self.assertIn("cible_type:'produit'", self.ui)
 
+    def test_friend_surfaces_have_account_report_actions(self):
+        self.assertIn("Supprimer</button>'+boutonSignalementNetcha('compte',id,id)", self.ui)
+        self.assertIn("Message</button>'+boutonSignalementNetcha('compte',m.id,m.id)", self.ui)
+        self.assertIn("boutonSignalementNetcha('compte',m.id,m.id)+'</article>", self.ui)
+
 
 if __name__ == "__main__":
     unittest.main()
